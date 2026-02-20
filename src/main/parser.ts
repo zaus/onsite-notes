@@ -1,0 +1,117 @@
+export interface LogEntry {
+  timestamp: string;       // HH:MM
+  date: string;            // YYYY-MM-DD
+  type: 'tag' | 'mention' | 'plain';
+  id: string | null;       // #TAG or @mention
+  project: string | null;
+  details: string;
+  lineNumber: number;
+  isContinuation: boolean;
+  todos: Array<{ state: string; text: string }>;
+  durationMinutes: number | null;
+}
+
+const TIMESTAMP_RE = /^(\d{2}:\d{2})\s+(\d{4}-\d{2}-\d{2})/;
+const TODO_RE = /\[([ x✔v~])\]|(NOW|DOING|LATER|DONE|CANCELED)\b/g;
+
+function parseTodoState(marker: string): string {
+  switch (marker) {
+    case ' ': return 'LATER';
+    case '~': return 'DOING';
+    case '✔': case 'v': return 'DONE';
+    case 'x': return 'CANCELED';
+    default: return marker; // NOW, DOING, etc.
+  }
+}
+
+export function parseEntries(content: string, defaultDate: string): LogEntry[] {
+  const lines = content.split('\n');
+  const entries: LogEntry[] = [];
+  let currentEntry: LogEntry | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Day delimiter
+    if (/^[-=]{3,}/.test(line.trim())) {
+      if (currentEntry) entries.push(currentEntry);
+      currentEntry = null;
+      continue;
+    }
+
+    const tsMatch = TIMESTAMP_RE.exec(line);
+
+    if (tsMatch) {
+      if (currentEntry) entries.push(currentEntry);
+
+      const timestamp = tsMatch[1];
+      const date = tsMatch[2];
+      const rest = line.slice(tsMatch[0].length);
+      const parts = rest.split('\t');
+
+      let type: 'tag' | 'mention' | 'plain' = 'plain';
+      let id: string | null = null;
+      let project: string | null = null;
+      let details = '';
+
+      if (parts.length >= 1) {
+        const first = parts[0].trim();
+        if (first.startsWith('#')) {
+          type = 'tag';
+          id = first;
+        } else if (first.startsWith('@')) {
+          type = 'mention';
+          id = first;
+        } else {
+          details = first;
+        }
+      }
+
+      if (type !== 'plain' && parts.length >= 2) {
+        project = parts[1].trim() || null;
+        details = parts.slice(2).join('\t').trim();
+      }
+
+      // Extract todos from details
+      const todos: Array<{ state: string; text: string }> = [];
+      let match: RegExpExecArray | null;
+      TODO_RE.lastIndex = 0;
+      while ((match = TODO_RE.exec(details)) !== null) {
+        const state = match[2] || parseTodoState(match[1]);
+        todos.push({ state, text: details });
+      }
+
+      currentEntry = {
+        timestamp,
+        date,
+        type,
+        id,
+        project,
+        details,
+        lineNumber: i,
+        isContinuation: false,
+        todos,
+        durationMinutes: null
+      };
+    } else if (line.startsWith('\t') && currentEntry) {
+      // Continuation line
+      currentEntry.details += '\n' + line.slice(1);
+    }
+  }
+
+  if (currentEntry) entries.push(currentEntry);
+
+  // Calculate durations
+  for (let i = 0; i < entries.length - 1; i++) {
+    const curr = entries[i];
+    const next = entries[i + 1];
+    if (curr.date === next.date) {
+      const [ch, cm] = curr.timestamp.split(':').map(Number);
+      const [nh, nm] = next.timestamp.split(':').map(Number);
+      curr.durationMinutes = (nh * 60 + nm) - (ch * 60 + cm);
+      if (curr.durationMinutes < 0) curr.durationMinutes = null;
+    }
+  }
+
+  return entries;
+}

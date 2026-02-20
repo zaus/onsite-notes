@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>Onsite Notes</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="toolbar">
+    <button id="btn-timestamp" title="Insert Timestamp (F9)">⏱ Timestamp</button>
+    <button id="btn-endday" title="End Day (Ctrl+F9)">📅 End Day</button>
+    <button id="btn-analysis" title="Analysis (F1)">📊 Analysis</button>
+    <span id="current-time"></span>
+  </div>
+  <div id="main-area">
+    <div id="editor-container"></div>
+    <div id="sidebar" class="hidden">
+      <div id="sidebar-header">
+        <span id="sidebar-title">Links</span>
+        <button id="sidebar-close">✕</button>
+      </div>
+      <div id="sidebar-content"></div>
+    </div>
+  </div>
+  <div id="status-bar">
+    <span id="status-file"></span>
+    <span id="status-time"></span>
+  </div>
+
+  <!-- Analysis Modal -->
+  <div id="analysis-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Analysis</h2>
+        <button id="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="analysis-controls">
+          <label><input type="radio" name="analysis-range" value="today" checked> Today</label>
+          <label><input type="radio" name="analysis-range" value="week"> Last 7 days</label>
+          <label><input type="radio" name="analysis-range" value="custom"> Custom range</label>
+          <div id="custom-range" class="hidden">
+            <input type="date" id="range-start">
+            <span>to</span>
+            <input type="date" id="range-end">
+          </div>
+          <button id="run-analysis">Run</button>
+        </div>
+        <pre id="analysis-output"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="autocomplete-container"></div>
+
+  <script src="app.bundle.js"></script>
+</body>
+</html>
