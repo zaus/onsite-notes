@@ -6,7 +6,11 @@
   "scripts": {
     "build": "npx tsc -p tsconfig.json && webpack --config webpack.config.js && node -e \"const fs=require('fs'); fs.copyFileSync('src/renderer/index.html','dist/renderer/index.html'); fs.copyFileSync('src/renderer/style.css','dist/renderer/style.css');\"",
     "start": "npm run build && electron .",
-    "dev": "electron ."
+    "dev": "electron .",
+    
+    "//safemode": "added safe mode scripts to help with GPU-related crashes on some machines",
+    "start:safe": "npm run build && set ELECTRON_SAFE_MODE=1&& electron .",
+    "dev:safe": "set ELECTRON_SAFE_MODE=1&& electron ."
   },
   "dependencies": {
     "@types/sql.js": "^1.4.9",

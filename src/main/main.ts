@@ -7,6 +7,15 @@ import { Database } from './database';
 import { Analyzer } from './analyzer';
 import { parseEntries } from './parser';
 
+const safeMode = process.env.ELECTRON_SAFE_MODE === '1';
+if (safeMode) {
+  app.disableHardwareAcceleration();
+  app.commandLine.appendSwitch('disable-gpu');
+  app.commandLine.appendSwitch('disable-gpu-compositing');
+  app.commandLine.appendSwitch('disable-gpu-sandbox');
+  app.commandLine.appendSwitch('no-sandbox');
+}
+
 const notesDir = path.join(os.homedir(), 'onsite-notes');
 if (!fs.existsSync(notesDir)) {
   fs.mkdirSync(notesDir, { recursive: true });
