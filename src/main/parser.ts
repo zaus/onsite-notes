@@ -116,5 +116,9 @@ export function parseEntries(content: string, defaultDate: string): LogEntry[] {
     }
   }
 
+  // drop the last entry, which should have an unknown duration
+  if (entries.length > 0 && entries[entries.length - 1].durationMinutes === null)
+    entries.pop();
+
   return entries;
 }

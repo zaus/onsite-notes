@@ -1,5 +1,4 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect } from 'vitest';
 import { Analyzer } from '../src/main/analyzer';
 import { loadFixture } from './helpers/fixtures';
 
@@ -14,10 +13,10 @@ test('Analyzer includes day activity for timestamp-only entries', () => {
     ].join('\n')
   });
 
-  assert.match(report, /=== SUMMARY ===/);
-  assert.match(report, /2 entries, 1 projects/);
-  assert.match(report, /1 days/);
-  assert.match(report, /2026-02-20: 2:00\s+\|\s+1:30/);
+  expect(report).toMatch(/=== SUMMARY ===/);
+  expect(report).toMatch(/2 entries, 1 projects/);
+  expect(report).toMatch(/1 days/);
+  expect(report).toMatch(/2026-02-20: 2:00\s+\|\s+1:30/);
 });
 
 test('Analyzer summarizes sample-entry fixture totals', () => {
@@ -28,11 +27,11 @@ test('Analyzer summarizes sample-entry fixture totals', () => {
     '2026-02-20': content
   });
 
-  assert.match(report, /11 entries, 1 projects/);
-  assert.match(report, /1 days/);
-  assert.match(report, /3:12\s+\|\s+3:07/);
-  assert.match(report, /#this-topic\s+Project/);
-  assert.match(report, /#another-topic\s+Project/);
+  expect(report).toMatch(/11 entries, 1 projects/);
+  expect(report).toMatch(/1 days/);
+  expect(report).toMatch(/3:12\s+\|\s+3:07/);
+  expect(report).toMatch(/#this-topic\s+Project/);
+  expect(report).toMatch(/#another-topic\s+Project/);
 });
 
 test('Analyzer loads timestamp-only fixture and applies provided date', () => {
@@ -43,6 +42,6 @@ test('Analyzer loads timestamp-only fixture and applies provided date', () => {
     '2026-02-20': content
   });
 
-  assert.match(report, /2 entries, 1 projects/);
-  assert.match(report, /2026-02-20: 2:00\s+\|\s+1:30/);
+  expect(report).toMatch(/2 entries, 1 projects/);
+  expect(report).toMatch(/2026-02-20: 2:00\s+\|\s+1:30/);
 });

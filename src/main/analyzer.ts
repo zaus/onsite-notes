@@ -59,7 +59,7 @@ export class Analyzer {
 
     const sortedIds = Object.values(idStats).sort((a, b) => a.id.localeCompare(b.id)); // .sort((a, b) => b.minutes - a.minutes);
 
-    // TODO: html formatting instead
+    // TODO: output summary object, then use formatting method
     let out = '=== SUMMARY ===\n';
     out += `${entryCount} entries, ${projectSet.size} projects\n`;
     out += `${dayCount} days\n`;
