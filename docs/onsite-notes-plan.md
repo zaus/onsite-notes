@@ -42,6 +42,8 @@ Any TODOs within an entry should be associated with its ID in a separate list, w
 
 Entries themselves won't be stored in a database, rather instead within date-based plain-text files (for easier portability and LLM access), but the IDs and Projects will be saved in a durable data store for easy analysis.  Links can then be stored as a table joining the ID to each date-file and position within the date-file.  Upon editing the record(s) of a day, Link positions should be automatically recalculated.
 
+Altogether, both files and database should be tied together as a "notebook", which is just represented by a separate subfolder containing them.  This will allow a user to switch between notebooks.
+
 ### Data Analysis
 
 Generally, at the end of the day a user will want to know what they worked on and how long it took, e.g. so they can clock in and out appropriately.  Additionally, over time they will want to be able to accurately bill clients for the actual tasks performed, e.g. generate an invoice for a specific time period.

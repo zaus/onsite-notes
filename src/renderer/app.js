@@ -220,6 +220,30 @@ const autocomplete = new AutocompleteWidget(autocompleteContainer);
 let editors = []; // [{date, view, section}]
 let saveTimers = {};
 let activeEditorIndex = 0;
+let currentNotebook = 'default';
+let priorDays = 3;
+
+function clearEditors() {
+  for (const editor of editors) {
+    editor.view.destroy();
+  }
+
+  for (const timer of Object.values(saveTimers)) {
+    clearTimeout(timer);
+  }
+
+  saveTimers = {};
+  editors = [];
+  activeEditorIndex = 0;
+  editorContainer.innerHTML = '';
+}
+
+async function switchNotebook(notebookName) {
+  const result = await electronAPI.setNotebook(notebookName);
+  currentNotebook = result.currentNotebook;
+  clearEditors();
+  await loadEditors();
+}
 
 function updateTime() {
   const { time, date } = getNow();
@@ -232,7 +256,9 @@ updateTime();
 
 async function loadEditors() {
   const config = await electronAPI.getConfig();
-  const priorDays = config.priorDays || 3;
+  priorDays = config.priorDays || 3;
+  currentNotebook = config.currentNotebook || currentNotebook;
+
   const today = todayDate();
 
   const dates = [];
@@ -245,8 +271,7 @@ async function loadEditors() {
     dates.push(`${yyyy}-${mo}-${dd}`);
   }
 
-  editorContainer.innerHTML = '';
-  editors = [];
+  clearEditors();
 
   for (const date of dates) {
     const content = await electronAPI.readFile(date) || '';
@@ -625,6 +650,22 @@ document.getElementById('btn-analysis').addEventListener('click', showAnalysis);
 document.getElementById('sidebar-close').addEventListener('click', () => {
   document.getElementById('sidebar').classList.add('hidden');
 });
+
+if (electronAPI.onNotebookChanged) {
+  electronAPI.onNotebookChanged(async (payload) => {
+    currentNotebook = payload.currentNotebook;
+    clearEditors();
+    await loadEditors();
+  });
+}
+
+if (electronAPI.onCreateNotebookRequested) {
+  electronAPI.onCreateNotebookRequested(async () => {
+    const enteredName = window.prompt('Notebook name (example: home-life, work):', '');
+    if (!enteredName) return;
+    await switchNotebook(enteredName);
+  });
+}
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 

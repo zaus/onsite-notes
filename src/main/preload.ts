@@ -7,5 +7,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAutocomplete: (prefix: string, type: string) => ipcRenderer.invoke('get-autocomplete', prefix, type),
   indexContent: (date: string, content: string) => ipcRenderer.invoke('index-content', date, content),
   analyze: (startDate: string, endDate: string) => ipcRenderer.invoke('analyze', startDate, endDate),
+  setNotebook: (name: string) => ipcRenderer.invoke('set-notebook', name),
+  listNotebooks: () => ipcRenderer.invoke('list-notebooks'),
+  onNotebookChanged: (callback: (payload: { currentNotebook: string; notebooks: string[] }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: { currentNotebook: string; notebooks: string[] }) => {
+      callback(payload);
+    };
+    ipcRenderer.on('notebook-changed', listener);
+    return () => ipcRenderer.removeListener('notebook-changed', listener);
+  },
+  onCreateNotebookRequested: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('create-notebook-requested', listener);
+    return () => ipcRenderer.removeListener('create-notebook-requested', listener);
+  },
   getConfig: () => ipcRenderer.invoke('get-config')
 });
