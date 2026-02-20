@@ -29,15 +29,23 @@
     <span id="status-time"></span>
   </div>
 
-  <!-- Analysis Modal -->
-  <div id="analysis-modal" class="modal hidden">
-    <div class="modal-content">
+  <div id="app-modal" class="modal hidden">
+    <div id="app-modal-content" class="modal-content">
       <div class="modal-header">
-        <h2>Analysis</h2>
-        <button id="modal-close">✕</button>
+        <h2 id="app-modal-title">Modal</h2>
+        <button id="app-modal-close">✕</button>
       </div>
-      <div class="modal-body">
-        <div id="analysis-controls">
+      <div id="app-modal-body" class="modal-body"></div>
+      <div class="modal-actions">
+        <button class="cancel" id="app-modal-cancel" data-cancel>Cancel</button>
+        <button class="confirm" id="app-modal-confirm" data-confirm>Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <template id="analysis-modal-template">
+    <div class="analysis-modal-content">
+      <div id="analysis-controls">
           <label><input type="radio" name="analysis-range" value="today" checked> Today</label>
           <label><input type="radio" name="analysis-range" value="week"> Last 7 days</label>
           <label><input type="radio" name="analysis-range" value="custom"> Custom range</label>
@@ -49,31 +57,20 @@
             <span>to</span>
             <input type="date" id="range-end">
           </div>
-          <button id="run-analysis">Run</button>
-        </div>
-        <div id="analysis-output"></div>
       </div>
+      <div id="analysis-output"></div>
     </div>
-  </div>
+  </template>
 
-  <div id="prompt-modal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Prompt Title</h2>
-      </div>
-      <div class="modal-body">
-        <div class="modal-row">
-          <label for="prompt-input">Prompt Input</label>
-          <input id="prompt-input" type="text" placeholder="home-life" autofocus>
-          <div class="validation hidden" aria-live="polite"></div>
-        </div>
-        <div class="modal-actions">
-          <button class="cancel" data-cancel>Cancel</button>
-          <button class="confirm" data-confirm>Confirm</button>
-        </div>
+  <template id="prompt-modal-template">
+    <div class="prompt-modal-content">
+      <div class="modal-row">
+        <label for="prompt-input">Prompt Input</label>
+        <input id="prompt-input" type="text" placeholder="home-life" autofocus>
+        <div class="validation hidden" aria-live="polite"></div>
       </div>
     </div>
-  </div>
+  </template>
 
   <div id="autocomplete-container"></div>
 

@@ -15,6 +15,8 @@ body {
   overflow: hidden;
 }
 
+.hidden { display: none !important; }
+
 #toolbar {
   display: flex;
   align-items: center;
@@ -250,19 +252,13 @@ body {
   }
 }
 
-#prompt-modal {
-  .modal-content {
-    width: 420px;
-  }
-
-  input {
-    background: #3c3c3c;
-    color: #d4d4d4;
-    border: 1px solid #555;
-    padding: 8px;
-    border-radius: 3px;
-    font-size: 13px;
-  }
+.prompt-modal-content input {
+  background: #3c3c3c;
+  color: #d4d4d4;
+  border: 1px solid #555;
+  padding: 8px;
+  border-radius: 3px;
+  font-size: 13px;
 }
 
 .validation {
@@ -303,15 +299,6 @@ body {
   border-radius: 3px;
 }
 
-#run-analysis {
-  background: #007acc;
-  color: #fff;
-  border: none;
-  padding: 6px 14px;
-  cursor: pointer;
-  border-radius: 3px;
-}
-
 #analysis-output {
   background: #1e1e1e;
   padding: 12px;
@@ -321,24 +308,28 @@ body {
   color: #d4d4d4;
   max-height: 400px;
   overflow-y: auto;
+
+  &.text {
+    white-space: pre-wrap;
+  }
+
+  & table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 12px;
+  }
+  
+  & th, & td {
+    border: 1px solid #444;
+    padding: 4px 6px;
+    text-align: left;
+  }
+
+  & th {
+    background: #2d2d2d;
+  }
 }
 
-#analysis-output table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 8px 0 12px;
-}
-
-#analysis-output th,
-#analysis-output td {
-  border: 1px solid #444;
-  padding: 4px 6px;
-  text-align: left;
-}
-
-#analysis-output th {
-  background: #2d2d2d;
-}
 
 /* Autocomplete */
 #autocomplete-container {

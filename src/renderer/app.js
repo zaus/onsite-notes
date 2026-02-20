@@ -5,6 +5,7 @@ import { indentUnit } from '@codemirror/language';
 import { searchKeymap } from '@codemirror/search';
 import { AutocompleteWidget } from './autocomplete.js';
 import { showPromptModal } from './promptModal.js';
+import { openModal } from './modalShell.js';
 
 const electronAPI = window.electronAPI;
 
@@ -615,52 +616,70 @@ async function handleCtrlClick(event, view) {
 // ─── Analysis ─────────────────────────────────────────────────────────────────
 
 function showAnalysis() {
-  const modal = document.getElementById('analysis-modal');
-  modal.classList.remove('hidden');
-}
+  const template = document.getElementById('analysis-modal-template');
+  const content = template?.content?.cloneNode(true);
+  if (!content) return;
 
-document.getElementById('modal-close').addEventListener('click', () => {
-  document.getElementById('analysis-modal').classList.add('hidden');
-});
+  const rangeRadios = content.querySelectorAll('input[name="analysis-range"]');
+  const formatRadios = content.querySelectorAll('input[name="analysis-format"]');
+  const customRange = content.querySelector('#custom-range');
+  const rangeStartInput = content.querySelector('#range-start');
+  const rangeEndInput = content.querySelector('#range-end');
+  const analysisOutput = content.querySelector('#analysis-output');
+  if (!customRange || !rangeStartInput || !rangeEndInput || !analysisOutput || rangeRadios.length === 0 || formatRadios.length === 0) return;
 
-document.querySelectorAll('input[name="analysis-range"]').forEach(radio => {
-  radio.addEventListener('change', (e) => {
-    const customRange = document.getElementById('custom-range');
-    customRange.classList.toggle('hidden', e.target.value !== 'custom');
+  rangeRadios.forEach((radio) => {
+    radio.addEventListener('change', (event) => {
+      customRange.classList.toggle('hidden', event.target.value !== 'custom');
+    });
   });
-});
 
-document.getElementById('run-analysis').addEventListener('click', async () => {
-  const range = document.querySelector('input[name="analysis-range"]:checked').value;
-  const format = document.querySelector('input[name="analysis-format"]:checked').value;
-  const today = todayDate();
-  const analysisOutput = document.getElementById('analysis-output');
-  let startDate, endDate;
+  openModal({
+    titleText: 'Analysis',
+    content,
+    confirmText: 'Run',
+    cancelText: 'Close',
+    onConfirm: async () => {
+      const selectedRange = Array.from(rangeRadios).find((radio) => radio.checked);
+      const selectedFormat = Array.from(formatRadios).find((radio) => radio.checked);
+      if (!selectedRange || !selectedFormat) return false;
 
-  if (range === 'today') {
-    startDate = endDate = today;
-  } else if (range === 'week') {
-    const d = new Date();
-    d.setDate(d.getDate() - 6);
-    startDate = formatDate(d);
-    endDate = today;
-  } else {
-    startDate = document.getElementById('range-start').value;
-    endDate = document.getElementById('range-end').value;
-    if (!startDate || !endDate) {
-      analysisOutput.textContent = 'Please select a date range.';
-      return;
+      const range = selectedRange.value;
+      const format = selectedFormat.value;
+      const today = todayDate();
+      let startDate;
+      let endDate;
+
+      if (range === 'today') {
+        startDate = endDate = today;
+      } else if (range === 'week') {
+        const d = new Date();
+        d.setDate(d.getDate() - 6);
+        startDate = formatDate(d);
+        endDate = today;
+      } else {
+        startDate = rangeStartInput.value;
+        endDate = rangeEndInput.value;
+        if (!startDate || !endDate) {
+          analysisOutput.textContent = 'Please select a date range.';
+          return false;
+        }
+      }
+
+      analysisOutput.textContent = 'Running analysis...';
+      const result = await electronAPI.analyze(startDate, endDate, format);
+      if (format === 'html') {
+        analysisOutput.classList.remove('text');
+        analysisOutput.innerHTML = result;
+      } else {
+        analysisOutput.classList.add('text');
+        analysisOutput.textContent = result;
+      }
+
+      return false;
     }
-  }
-
-  analysisOutput.textContent = 'Running analysis...';
-  const result = await electronAPI.analyze(startDate, endDate, format);
-  if (format === 'html') {
-    analysisOutput.innerHTML = result;
-  } else {
-    analysisOutput.textContent = result;
-  }
-});
+  });
+}
 
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
 
