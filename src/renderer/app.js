@@ -287,7 +287,14 @@ async function loadEditors() {
   clearEditors();
 
   for (const date of dates) {
-    const content = await electronAPI.readFile(date) || '';
+    const content = await electronAPI.readFile(date) || null;
+    // skip non-existent files (null) but still create editors for empty files ('')
+    if (content === null) {
+      // but always create an editor for today
+      if (date === today) content = '';
+      else continue;
+    }
+
     const section = document.createElement('div');
     section.className = 'day-section';
 

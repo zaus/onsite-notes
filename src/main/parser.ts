@@ -11,7 +11,8 @@ export interface LogEntry {
   durationMinutes: number | null;
 }
 
-const TIMESTAMP_RE = /^(\d{2}:\d{2})\s+(\d{4}-\d{2}-\d{2})/;
+const TIMESTAMP_WITH_DATE_RE = /^(\d{2}:\d{2})\s+(\d{4}-\d{2}-\d{2})\s/;
+const TIMESTAMP_ONLY_RE = /^(\d{2}:\d{2})\s/;
 const TODO_RE = /\[([ x✔v~])\]|(NOW|DOING|LATER|DONE|CANCELED)\b/g;
 
 function parseTodoState(marker: string): string {
@@ -39,14 +40,16 @@ export function parseEntries(content: string, defaultDate: string): LogEntry[] {
       continue;
     }
 
-    const tsMatch = TIMESTAMP_RE.exec(line);
+    const tsWithDateMatch = TIMESTAMP_WITH_DATE_RE.exec(line);
+    const tsOnlyMatch = tsWithDateMatch ? null : TIMESTAMP_ONLY_RE.exec(line);
 
-    if (tsMatch) {
+    if (tsWithDateMatch || tsOnlyMatch) {
       if (currentEntry) entries.push(currentEntry);
 
-      const timestamp = tsMatch[1];
-      const date = tsMatch[2];
-      const rest = line.slice(tsMatch[0].length);
+      const timestamp = tsWithDateMatch ? tsWithDateMatch[1] : tsOnlyMatch![1];
+      const date = tsWithDateMatch ? tsWithDateMatch[2] : defaultDate;
+      const matchedPrefix = tsWithDateMatch ? tsWithDateMatch[0] : tsOnlyMatch![0];
+      const rest = line.slice(matchedPrefix.length);
       const parts = rest.split('\t');
 
       let type: 'tag' | 'mention' | 'plain' = 'plain';
