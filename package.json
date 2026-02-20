@@ -4,13 +4,14 @@
   "description": "Simple note-taking application with time tracking",
   "main": "dist/main/main.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json && webpack --config webpack.config.js && cp src/renderer/index.html src/renderer/style.css dist/renderer/",
+    "build": "npx tsc -p tsconfig.json && webpack --config webpack.config.js && node -e \"const fs=require('fs'); fs.copyFileSync('src/renderer/index.html','dist/renderer/index.html'); fs.copyFileSync('src/renderer/style.css','dist/renderer/style.css');\"",
     "start": "npm run build && electron .",
     "dev": "electron ."
   },
   "dependencies": {
-    "better-sqlite3": "^9.4.3",
-    "electron": "^29.1.0"
+    "@types/sql.js": "^1.4.9",
+    "electron": "^29.1.0",
+    "sql.js": "^1.14.0"
   },
   "devDependencies": {
     "@codemirror/autocomplete": "^6.12.0",
@@ -21,8 +22,7 @@
     "@codemirror/view": "^6.26.3",
     "@electron/rebuild": "^3.6.0",
     "@lezer/highlight": "^1.2.0",
-    "@types/better-sqlite3": "^7.6.8",
-    "@types/node": "^20.11.0",
+    "@types/node": "^20.19.33",
     "ts-loader": "^9.5.1",
     "typescript": "^5.3.3",
     "webpack": "^5.90.3",

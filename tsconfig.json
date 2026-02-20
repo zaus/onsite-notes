@@ -8,7 +8,8 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "types": ["node", "electron"]
   },
   "include": ["src/main/**/*"],
   "exclude": ["node_modules", "dist"]

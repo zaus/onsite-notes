@@ -1,16 +1,33 @@
-import Database3 from 'better-sqlite3';
+import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
+import * as fs from 'fs';
+import * as path from 'path';
 import { LogEntry } from './parser';
 
 export class Database {
-  private db: Database3.Database;
+  private db!: SqlJsDatabase;
+  private dbPath: string;
 
-  constructor(dbPath: string) {
-    this.db = new Database3(dbPath);
-    this.init();
+  private constructor(dbPath: string) {
+    this.dbPath = dbPath;
   }
 
-  private init() {
-    this.db.exec(`
+  /** Factory — must be used instead of `new Database()` because init is async */
+  static async create(dbPath: string): Promise<Database> {
+    const instance = new Database(dbPath);
+    await instance.init(dbPath);
+    return instance;
+  }
+
+  private async init(dbPath: string) {
+    const SQL = await initSqlJs();
+    if (fs.existsSync(dbPath)) {
+      const fileBuffer = fs.readFileSync(dbPath);
+      this.db = new SQL.Database(fileBuffer);
+    } else {
+      this.db = new SQL.Database();
+    }
+
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS ids (
         id TEXT PRIMARY KEY,
         type TEXT CHECK(type IN ('tag','mention')),
@@ -34,79 +51,82 @@ export class Database {
         PRIMARY KEY (id, date_file, line_number)
       );
     `);
+    this.persist();
+  }
+
+  /** Write the in-memory database back to disk */
+  private persist() {
+    const data = this.db.export();
+    const buffer = Buffer.from(data);
+    fs.mkdirSync(path.dirname(this.dbPath), { recursive: true });
+    fs.writeFileSync(this.dbPath, buffer);
+  }
+
+  /** Convert sql.js query results into an array of plain objects */
+  private toObjects<T>(results: ReturnType<SqlJsDatabase['exec']>): T[] {
+    if (!results || results.length === 0) return [];
+    const { columns, values } = results[0];
+    return values.map(row => {
+      const obj: Record<string, unknown> = {};
+      columns.forEach((col, i) => { obj[col] = row[i]; });
+      return obj as T;
+    });
   }
 
   indexEntries(dateFile: string, entries: LogEntry[]) {
-    const upsertId = this.db.prepare(`
-      INSERT INTO ids (id, type, first_seen, last_seen, project)
-      VALUES (@id, @type, @date, @date, @project)
-      ON CONFLICT(id) DO UPDATE SET
-        last_seen = @date,
-        project = COALESCE(@project, project)
-    `);
-
-    const upsertLink = this.db.prepare(`
-      INSERT OR REPLACE INTO links (id, date_file, line_number, context)
-      VALUES (@id, @dateFile, @lineNumber, @context)
-    `);
-
-    const upsertTodo = this.db.prepare(`
-      INSERT OR REPLACE INTO todos (id, date_file, state, text, line_number)
-      VALUES (@id, @dateFile, @state, @text, @lineNumber)
-    `);
-
-    const tx = this.db.transaction(() => {
-      // Clear existing entries for this date
-      this.db.prepare('DELETE FROM links WHERE date_file = ?').run(dateFile);
-      this.db.prepare('DELETE FROM todos WHERE date_file = ?').run(dateFile);
+    this.db.run('BEGIN');
+    try {
+      this.db.run('DELETE FROM links WHERE date_file = ?', [dateFile]);
+      this.db.run('DELETE FROM todos WHERE date_file = ?', [dateFile]);
 
       for (const entry of entries) {
         if (entry.id) {
           const idType = entry.type === 'tag' ? 'tag' : 'mention';
-          upsertId.run({
-            id: entry.id,
-            type: idType,
-            date: entry.date,
-            project: entry.project
-          });
 
-          upsertLink.run({
-            id: entry.id,
-            dateFile,
-            lineNumber: entry.lineNumber,
-            context: entry.details.slice(0, 200)
-          });
+          this.db.run(`
+            INSERT INTO ids (id, type, first_seen, last_seen, project)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              last_seen = excluded.last_seen,
+              project = COALESCE(excluded.project, project)
+          `, [entry.id, idType, entry.date, entry.date, entry.project ?? null]);
+
+          this.db.run(`
+            INSERT OR REPLACE INTO links (id, date_file, line_number, context)
+            VALUES (?, ?, ?, ?)
+          `, [entry.id, dateFile, entry.lineNumber, entry.details.slice(0, 200)]);
 
           for (const todo of entry.todos) {
-            upsertTodo.run({
-              id: entry.id,
-              dateFile,
-              state: todo.state,
-              text: todo.text.slice(0, 500),
-              lineNumber: entry.lineNumber
-            });
+            this.db.run(`
+              INSERT OR REPLACE INTO todos (id, date_file, state, text, line_number)
+              VALUES (?, ?, ?, ?, ?)
+            `, [entry.id, dateFile, todo.state, todo.text.slice(0, 500), entry.lineNumber]);
           }
         }
       }
-    });
 
-    tx();
+      this.db.run('COMMIT');
+    } catch (err) {
+      this.db.run('ROLLBACK');
+      throw err;
+    }
+    this.persist();
   }
 
   searchIds(prefix: string, type?: string): Array<{ id: string; type: string; project: string | null }> {
-    let query = 'SELECT id, type, project FROM ids WHERE id LIKE ? ';
     const params: string[] = [`${prefix}%`];
-    if (type && (type === 'tag' || type === 'mention')) {
+    let query = 'SELECT id, type, project FROM ids WHERE id LIKE ?';
+    if (type === 'tag' || type === 'mention') {
       query += ' AND type = ?';
       params.push(type);
     }
     query += ' ORDER BY last_seen DESC LIMIT 10';
-    return this.db.prepare(query).all(...params) as Array<{ id: string; type: string; project: string | null }>;
+    return this.toObjects(this.db.exec(query, params));
   }
 
   getLinks(id: string): Array<{ date_file: string; line_number: number; context: string }> {
-    return this.db.prepare(
-      'SELECT date_file, line_number, context FROM links WHERE id = ? ORDER BY date_file DESC'
-    ).all(id) as Array<{ date_file: string; line_number: number; context: string }>;
+    return this.toObjects(
+      this.db.exec('SELECT date_file, line_number, context FROM links WHERE id = ? ORDER BY date_file DESC', [id])
+    );
   }
 }

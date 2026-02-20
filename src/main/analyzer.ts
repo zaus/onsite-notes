@@ -57,7 +57,7 @@ export class Analyzer {
     const avgPerDay = dayCount > 0 ? totalMinutes / dayCount : 0;
     const avgActivePerDay = dayCount > 0 ? activeMinutes / dayCount : 0;
 
-    const sortedIds = Object.values(idStats).sort((a, b) => a.id.localCompare(b.id)); // .sort((a, b) => b.minutes - a.minutes);
+    const sortedIds = Object.values(idStats).sort((a, b) => a.id.localeCompare(b.id)); // .sort((a, b) => b.minutes - a.minutes);
 
     // TODO: html formatting instead
     let out = '=== SUMMARY ===\n';
