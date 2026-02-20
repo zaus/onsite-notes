@@ -632,7 +632,9 @@ document.querySelectorAll('input[name="analysis-range"]').forEach(radio => {
 
 document.getElementById('run-analysis').addEventListener('click', async () => {
   const range = document.querySelector('input[name="analysis-range"]:checked').value;
+  const format = document.querySelector('input[name="analysis-format"]:checked').value;
   const today = todayDate();
+  const analysisOutput = document.getElementById('analysis-output');
   let startDate, endDate;
 
   if (range === 'today') {
@@ -646,14 +648,18 @@ document.getElementById('run-analysis').addEventListener('click', async () => {
     startDate = document.getElementById('range-start').value;
     endDate = document.getElementById('range-end').value;
     if (!startDate || !endDate) {
-      document.getElementById('analysis-output').textContent = 'Please select a date range.';
+      analysisOutput.textContent = 'Please select a date range.';
       return;
     }
   }
 
-  document.getElementById('analysis-output').textContent = 'Running analysis...';
-  const result = await electronAPI.analyze(startDate, endDate);
-  document.getElementById('analysis-output').textContent = result;
+  analysisOutput.textContent = 'Running analysis...';
+  const result = await electronAPI.analyze(startDate, endDate, format);
+  if (format === 'html') {
+    analysisOutput.innerHTML = result;
+  } else {
+    analysisOutput.textContent = result;
+  }
 });
 
 // ─── Toolbar ──────────────────────────────────────────────────────────────────

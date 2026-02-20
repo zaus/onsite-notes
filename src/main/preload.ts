@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   listFiles: () => ipcRenderer.invoke('list-files'),
   getAutocomplete: (prefix: string, type: string) => ipcRenderer.invoke('get-autocomplete', prefix, type),
   indexContent: (date: string, content: string) => ipcRenderer.invoke('index-content', date, content),
-  analyze: (startDate: string, endDate: string) => ipcRenderer.invoke('analyze', startDate, endDate),
+  analyze: (startDate: string, endDate: string, format: 'text' | 'html' = 'text') => ipcRenderer.invoke('analyze', startDate, endDate, format),
   setNotebook: (name: string) => ipcRenderer.invoke('set-notebook', name),
   listNotebooks: () => ipcRenderer.invoke('list-notebooks'),
   onNotebookChanged: (callback: (payload: { currentNotebook: string; notebooks: string[] }) => void) => {

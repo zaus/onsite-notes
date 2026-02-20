@@ -41,6 +41,9 @@
           <label><input type="radio" name="analysis-range" value="today" checked> Today</label>
           <label><input type="radio" name="analysis-range" value="week"> Last 7 days</label>
           <label><input type="radio" name="analysis-range" value="custom"> Custom range</label>
+          <span class="analysis-separator">|</span>
+          <label><input type="radio" name="analysis-format" value="html" checked> HTML</label>
+          <label><input type="radio" name="analysis-format" value="text"> Text</label>
           <div id="custom-range" class="hidden">
             <input type="date" id="range-start">
             <span>to</span>
@@ -48,7 +51,7 @@
           </div>
           <button id="run-analysis">Run</button>
         </div>
-        <pre id="analysis-output"></pre>
+        <div id="analysis-output"></div>
       </div>
     </div>
   </div>

@@ -285,6 +285,8 @@ body {
 
 #analysis-controls label { color: #d4d4d4; cursor: pointer; }
 
+.analysis-separator { color: #666; }
+
 #custom-range {
   display: flex;
   gap: 8px;
@@ -314,11 +316,28 @@ body {
   background: #1e1e1e;
   padding: 12px;
   border-radius: 3px;
-  white-space: pre-wrap;
+  white-space: normal;
   font-size: 12px;
   color: #d4d4d4;
   max-height: 400px;
   overflow-y: auto;
+}
+
+#analysis-output table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 12px;
+}
+
+#analysis-output th,
+#analysis-output td {
+  border: 1px solid #444;
+  padding: 4px 6px;
+  text-align: left;
+}
+
+#analysis-output th {
+  background: #2d2d2d;
 }
 
 /* Autocomplete */

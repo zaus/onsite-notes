@@ -138,9 +138,9 @@ app.whenReady().then(async () => {
     return true;
   });
 
-  ipcMain.handle('analyze', async (_event: IpcMainInvokeEvent, startDate: string, endDate: string) => {
+  ipcMain.handle('analyze', async (_event: IpcMainInvokeEvent, startDate: string, endDate: string, format: 'text' | 'html' = 'text') => {
     const contents = await notebookManager.getContentsInRange(startDate, endDate);
-    return analyzer.analyze(contents);
+    return format === 'html' ? analyzer.analyzeHtml(contents) : analyzer.analyze(contents);
   });
 
   ipcMain.handle('set-notebook', async (_event: IpcMainInvokeEvent, notebookName: string) => {
