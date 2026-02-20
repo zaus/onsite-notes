@@ -4,10 +4,9 @@
   "description": "Simple note-taking application with time tracking",
   "main": "dist/main/main.js",
   "scripts": {
-    "build": "npx tsc -p tsconfig.json && webpack --config webpack.config.js && node -e \"const fs=require('fs'); fs.copyFileSync('src/renderer/index.html','dist/renderer/index.html'); fs.copyFileSync('src/renderer/style.css','dist/renderer/style.css');\"",
+    "build": "npx tsc -p tsconfig.json && webpack --config webpack.config.js",
     "start": "npm run build && electron .",
     "dev": "electron .",
-    
     "//safemode": "added safe mode scripts to help with GPU-related crashes on some machines",
     "start:safe": "npm run build && set ELECTRON_SAFE_MODE=1&& electron .",
     "dev:safe": "set ELECTRON_SAFE_MODE=1&& electron ."
@@ -27,6 +26,7 @@
     "@electron/rebuild": "^3.6.0",
     "@lezer/highlight": "^1.2.0",
     "@types/node": "^20.19.33",
+    "copy-webpack-plugin": "^13.0.1",
     "ts-loader": "^9.5.1",
     "typescript": "^5.3.3",
     "webpack": "^5.90.3",
