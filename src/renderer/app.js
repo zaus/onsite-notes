@@ -1,6 +1,7 @@
 import { EditorState, EditorSelection, Prec } from '@codemirror/state';
-import { EditorView, keymap, ViewPlugin, Decoration } from '@codemirror/view';
-import { defaultKeymap, historyKeymap, history } from '@codemirror/commands';
+import { EditorView, keymap, ViewPlugin, Decoration, highlightActiveLine, highlightActiveLineGutter, drawSelection } from '@codemirror/view';
+import { defaultKeymap, historyKeymap, history, insertNewlineAndIndent } from '@codemirror/commands';
+import { indentUnit } from '@codemirror/language';
 import { searchKeymap } from '@codemirror/search';
 import { AutocompleteWidget } from './autocomplete.js';
 import { showPromptModal } from './promptModal.js';
@@ -170,7 +171,7 @@ function applyLineDecorations(line, lineStart, decorations) {
   }
 
   // Tags and Mentions
-  const idRe = /(?:^|\t|\s)(#\w[\w.-]*|@\w[\w.-]*)/g;
+  const idRe = /(?:^|\t|\s)(#[\w.-]*|@[\w.-]*)/g;
   let im;
   while ((im = idRe.exec(line)) !== null) {
     const fullMatch = im[0];
@@ -357,6 +358,7 @@ function createEditor(container, content, date, isToday) {
     extensions: [
       history(),
       tabKeymap,
+      indentUnit.of('\t'),
       keymap.of([
         ...defaultKeymap,
         ...historyKeymap,
@@ -399,11 +401,11 @@ function createEditor(container, content, date, isToday) {
         },
         {
           key: 'Enter',
-          run: () => {
+          run: (view) => {
             if (autocomplete.visible) {
               return autocomplete.confirmSelection();
             }
-            return false;
+            return insertNewlineAndIndent(view);
           }
         },
         {
@@ -419,6 +421,9 @@ function createEditor(container, content, date, isToday) {
       ]),
       syntaxPlugin,
       autoSavePlugin,
+      // drawSelection(),
+      highlightActiveLine(),
+      highlightActiveLineGutter(),
       EditorView.updateListener.of((update) => {
         if (update.focusChanged && update.view.hasFocus) {
           activeEditorIndex = editors.findIndex(e => e.view === update.view);
@@ -450,10 +455,11 @@ function createEditor(container, content, date, isToday) {
       }),
       EditorView.theme({
         '&': { height: '100%', background: '#1e1e1e', color: '#d4d4d4' },
-        '.cm-content': { fontFamily: "'DejaVu Sans Mono', 'Courier New', monospace", fontSize: '13px' },
-        '.cm-cursor': { borderLeftColor: '#d4d4d4' },
+        // using drawSelection obviates caretColor, but then screws up selection styling? not using it obviates .cm-cursor?
+        '.cm-content': { fontFamily: "'DejaVu Sans Mono', 'Courier New', monospace", fontSize: '13px', caretColor: '#fbff7d' },
+        '.cm-cursor': { borderLeftColor: '#ffa47d', borderLeftWidth: '2px' },
         '.cm-selectionBackground': { background: '#264f78' },
-        '&.cm-focused .cm-selectionBackground': { background: '#264f78' },
+        '&.cm-focused .cm-selectionBackground': { background: '#172d43' },
         '.cm-gutters': { background: '#1e1e1e', borderRight: '1px solid #333', color: '#555' },
         '.cm-activeLineGutter': { background: '#2a2a2a' },
         '.cm-activeLine': { background: '#2a2d2e' },
