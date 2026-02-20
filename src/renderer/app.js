@@ -1,4 +1,4 @@
-import { EditorState } from '@codemirror/state';
+import { EditorState, EditorSelection, Prec } from '@codemirror/state';
 import { EditorView, keymap, ViewPlugin, Decoration } from '@codemirror/view';
 import { defaultKeymap, historyKeymap, history } from '@codemirror/commands';
 import { searchKeymap } from '@codemirror/search';
@@ -27,6 +27,69 @@ function formatDate(d) {
   const mo = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}-${mo}-${dd}`;
+}
+
+function insertTabCharacter(view) {
+  const changes = [];
+  const nextRanges = [];
+
+  for (const range of view.state.selection.ranges) {
+    changes.push({ from: range.from, to: range.to, insert: '\t' });
+    const cursor = range.from + 1;
+    nextRanges.push(EditorSelection.cursor(cursor));
+  }
+
+  view.dispatch({
+    changes,
+    selection: EditorSelection.create(nextRanges),
+    userEvent: 'input'
+  });
+
+  return true;
+}
+
+function outdentSelection(view) {
+  const lineNumbers = new Set();
+
+  for (const range of view.state.selection.ranges) {
+    const startLineNumber = view.state.doc.lineAt(range.from).number;
+    let endPosition = range.to;
+
+    if (range.from !== range.to && endPosition > 0 && view.state.doc.sliceString(endPosition - 1, endPosition) === '\n') {
+      endPosition -= 1;
+    }
+
+    const endLineNumber = view.state.doc.lineAt(endPosition).number;
+    for (let lineNumber = startLineNumber; lineNumber <= endLineNumber; lineNumber++) {
+      lineNumbers.add(lineNumber);
+    }
+  }
+
+  const changes = [];
+  const sortedLineNumbers = Array.from(lineNumbers).sort((a, b) => a - b);
+
+  for (const lineNumber of sortedLineNumbers) {
+    const line = view.state.doc.line(lineNumber);
+    if (line.text.startsWith('\t')) {
+      changes.push({ from: line.from, to: line.from + 1, insert: '' });
+      continue;
+    }
+
+    const leadingSpaces = line.text.match(/^ +/);
+    if (leadingSpaces) {
+      const removeCount = Math.min(4, leadingSpaces[0].length);
+      changes.push({ from: line.from, to: line.from + removeCount, insert: '' });
+    }
+  }
+
+  if (changes.length > 0) {
+    view.dispatch({
+      changes,
+      userEvent: 'input'
+    });
+  }
+
+  return true;
 }
 
 // ─── Syntax Decorations ───────────────────────────────────────────────────────
@@ -230,6 +293,17 @@ function createEditor(container, content, date, isToday) {
     await electronAPI.indexContent(date, docContent);
   };
 
+  const tabKeymap = Prec.highest(keymap.of([
+    {
+      key: 'Tab',
+      run: (view) => insertTabCharacter(view)
+    },
+    {
+      key: 'Shift-Tab',
+      run: (view) => outdentSelection(view)
+    }
+  ]));
+
   const autoSavePlugin = ViewPlugin.fromClass(class {
     update(update) {
       if (update.docChanged) {
@@ -245,6 +319,7 @@ function createEditor(container, content, date, isToday) {
     doc: content,
     extensions: [
       history(),
+      tabKeymap,
       keymap.of([
         ...defaultKeymap,
         ...historyKeymap,
@@ -319,6 +394,17 @@ function createEditor(container, content, date, isToday) {
         }
       }),
       EditorView.domEventHandlers({
+        keydown: (event, view) => {
+          if (event.key === 'Tab') {
+            event.preventDefault();
+            event.stopPropagation();
+            if (event.shiftKey) {
+              return outdentSelection(view);
+            }
+            return insertTabCharacter(view);
+          }
+          return false;
+        },
         click: (e, view) => {
           if (e.ctrlKey) {
             handleCtrlClick(e, view);
