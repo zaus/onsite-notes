@@ -22,6 +22,13 @@ function todayDate() {
   return getNow().date;
 }
 
+function formatDate(d) {
+  const yyyy = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mo}-${dd}`;
+}
+
 // ─── Syntax Decorations ───────────────────────────────────────────────────────
 
 const markTag = Decoration.mark({ class: 'tok-tag' });
@@ -497,7 +504,7 @@ document.getElementById('run-analysis').addEventListener('click', async () => {
   } else if (range === 'week') {
     const d = new Date();
     d.setDate(d.getDate() - 6);
-    startDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    startDate = formatDate(d);
     endDate = today;
   } else {
     startDate = document.getElementById('range-start').value;

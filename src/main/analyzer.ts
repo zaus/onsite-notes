@@ -63,8 +63,9 @@ export class Analyzer {
     out += `${entryCount} entries, ${projectSet.size} projects\n`;
     out += `${dayCount} days\n`;
     out += `${fmt(avgPerDay)}/day --> ${fmt(avgActivePerDay)}/day active\n`;
+    const offMinutes = totalMinutes - activeMinutes;
     out += `${fmt(totalMinutes)}  |  ${fmt(activeMinutes)} (${dec(activeMinutes)}) = ${pct(activeMinutes, totalMinutes)}% on  `;
-    out += `${fmt(totalMinutes - activeMinutes)} (${dec(totalMinutes - activeMinutes)}) = ${pct(totalMinutes - activeMinutes, totalMinutes)}% off\n\n`;
+    out += `${fmt(offMinutes)} (${dec(offMinutes)}) = ${pct(offMinutes, totalMinutes)}% off\n\n`;
 
     // Daily breakdown
     out += `=== DAILY (${dayCount} days, ${entryCount} entries) ===\n`;
