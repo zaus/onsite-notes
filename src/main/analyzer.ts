@@ -31,7 +31,7 @@ export class Analyzer {
       entryCount++;
       totalMinutes += dur;
 
-      if (entry.type !== 'plain') {
+      if (entry.type !== 'mention') {
         activeMinutes += dur;
         if (entry.type === 'tag') billableMinutes += dur;
       }
@@ -57,8 +57,9 @@ export class Analyzer {
     const avgPerDay = dayCount > 0 ? totalMinutes / dayCount : 0;
     const avgActivePerDay = dayCount > 0 ? activeMinutes / dayCount : 0;
 
-    const sortedIds = Object.values(idStats).sort((a, b) => b.minutes - a.minutes);
+    const sortedIds = Object.values(idStats).sort((a, b) => a.id.localCompare(b.id)); // .sort((a, b) => b.minutes - a.minutes);
 
+    // TODO: html formatting instead
     let out = '=== SUMMARY ===\n';
     out += `${entryCount} entries, ${projectSet.size} projects\n`;
     out += `${dayCount} days\n`;
@@ -74,7 +75,7 @@ export class Analyzer {
       let dayTotal = 0, dayActive = 0;
       for (const e of dayEntries) {
         dayTotal += e.durationMinutes!;
-        if (e.type !== 'plain') dayActive += e.durationMinutes!;
+        if (e.type !== 'mention') dayActive += e.durationMinutes!;
       }
       out += `${date}: ${fmt(dayTotal)}  |  ${fmt(dayActive)} (${dec(dayActive)}) = ${pct(dayActive, dayTotal)}% on  `;
       out += `${fmt(dayTotal - dayActive)} (${dec(dayTotal - dayActive)}) = ${pct(dayTotal - dayActive, dayTotal)}% off\n`;
