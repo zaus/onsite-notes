@@ -1,0 +1,27 @@
+09:46 2026-02-20	I've got something to say
+	but i don't want to press the issue
+09:47 2026-02-20	when you get lemons, make lemonade
+	but don't be shy
+	you know what to do
+    oh no it's not preserving tabs!
+    bad panda
+09:48 2026-02-20	but at least it handles newlines
+09:48 2026-02-20	#this-topic	Project	oh yeah, arbitrary stuff baby
+11:48 2026-02-20	and we're done
+12:25 2026-02-20	#another-topic	Project	editing the (duplicated?) today box at the top
+12:30 2026-02-20	@break
+12:35 2026-02-20	more stuff referring to @break or #another-topic and #this-topic
+12:40 2026-02-20	done
+12:45 2026-02-20	#this-topic	Project	trying for more newlines
+	tab delimited
+    is this the same delimiter
+    what about here?
+    what about now? does it preserve (smart) indentation or default to tabs?
+12:47 2026-02-20	done
+	but this should be explicitly a tab
+    and this should default/defer to a tab
+12:56 2026-02-20	again
+	this is explicitly a tab
+	this should defer to tab
+	and another deferral?
+12:58 2026-02-20	done

@@ -1,0 +1,3 @@
+09:00 #WORK	ACME	Start feature
+10:30 @break		Coffee
+11:00 #WORK	ACME	Resume feature
