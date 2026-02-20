@@ -166,40 +166,113 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+
+  &.hidden {
+    display: none;
+  }
+
+  .modal-content {
+    background: #252525;
+    border: 1px solid #444;
+    border-radius: 4px;
+    width: 700px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #444;
+
+    h2 {
+      flex: 1;
+      font-size: 16px;
+    }
+
+    button {
+      background: none;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      font-size: 16px;
+    }
+  }
+
+  .modal-body {
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  .modal-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    label {
+      color: #d4d4d4;
+      font-size: 12px;
+    }
+  }
+
+  .modal-actions {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+
+    button {
+      background: #3c3c3c;
+      color: #d4d4d4;
+      border: 1px solid #555;
+      padding: 6px 12px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+  }
+
+  .modal-validation {
+    color: #ff6b6b;
+    font-size: 12px;
+    min-height: 16px;
+
+    &.hidden {
+      display: none;
+    }
+  }
+
+  [data-confirm] {
+    background: #007acc;
+    border-color: #007acc;
+    color: #fff;
+  }
 }
 
-.modal.hidden { display: none; }
+#prompt-modal {
+  .modal-content {
+    width: 420px;
+  }
 
-.modal-content {
-  background: #252525;
-  border: 1px solid #444;
-  border-radius: 4px;
-  width: 700px;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
+  input {
+    background: #3c3c3c;
+    color: #d4d4d4;
+    border: 1px solid #555;
+    padding: 8px;
+    border-radius: 3px;
+    font-size: 13px;
+  }
 }
 
-.modal-header {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid #444;
-}
+.validation {
+  color: #ff6b6b;
+  font-size: 12px;
+  min-height: 16px;
 
-.modal-header h2 { flex: 1; font-size: 16px; }
-
-.modal-header button {
-  background: none;
-  border: none;
-  color: #888;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.modal-body {
-  padding: 16px;
-  overflow-y: auto;
+  &.hidden {
+    display: none;
+  }
 }
 
 #analysis-controls {

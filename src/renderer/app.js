@@ -3,6 +3,7 @@ import { EditorView, keymap, ViewPlugin, Decoration } from '@codemirror/view';
 import { defaultKeymap, historyKeymap, history } from '@codemirror/commands';
 import { searchKeymap } from '@codemirror/search';
 import { AutocompleteWidget } from './autocomplete.js';
+import { showPromptModal } from './promptModal.js';
 
 const electronAPI = window.electronAPI;
 
@@ -243,6 +244,17 @@ async function switchNotebook(notebookName) {
   currentNotebook = result.currentNotebook;
   clearEditors();
   await loadEditors();
+}
+
+function requestNotebookName() {
+  // If prompt requirements grow (multi-field, rich validation, etc.), evaluate migrating to electron-prompt.
+  return showPromptModal({
+    titleText: 'New Notebook',
+    labelText: 'Notebook name',
+    placeholder: 'home-life',
+    confirmText: 'Create',
+    validate: (value) => value.length > 0 || 'Notebook name is required.'
+  });
 }
 
 function updateTime() {
@@ -661,7 +673,7 @@ if (electronAPI.onNotebookChanged) {
 
 if (electronAPI.onCreateNotebookRequested) {
   electronAPI.onCreateNotebookRequested(async () => {
-    const enteredName = window.prompt('Notebook name (example: home-life, work):', '');
+    const enteredName = await requestNotebookName();
     if (!enteredName) return;
     await switchNotebook(enteredName);
   });

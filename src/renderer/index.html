@@ -53,6 +53,25 @@
     </div>
   </div>
 
+  <div id="prompt-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Prompt Title</h2>
+      </div>
+      <div class="modal-body">
+        <div class="modal-row">
+          <label for="prompt-input">Prompt Input</label>
+          <input id="prompt-input" type="text" placeholder="home-life" autofocus>
+          <div class="validation hidden" aria-live="polite"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="cancel" data-cancel>Cancel</button>
+          <button class="confirm" data-confirm>Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="autocomplete-container"></div>
 
   <script src="app.bundle.js"></script>
