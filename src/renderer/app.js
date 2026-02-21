@@ -124,16 +124,20 @@ function applyLineDecorations(line, lineStart, decorations) {
     decorations.push(markTimestamp.range(lineStart, lineStart + tsMatch[1].length));
   }
 
-  // Bullet lines
-  if (/^[\t ]*[-*~][\t ]/.test(line) || /^[\t ]*\.\:/.test(line)) {
-    decorations.push(markBullet.range(lineStart, lineStart + line.length));
-    return;
+  // Bullet and therefore markers
+  const bulletMatch = /^([\t ]*)(?:[-*~]|\.:)/.exec(line);
+  if (bulletMatch) {
+    const indentLen = bulletMatch[1].length;
+    const markerEnd = bulletMatch[0].length;
+    decorations.push(markBullet.range(lineStart + bulletMatch.index + indentLen, lineStart + bulletMatch.index + markerEnd));
   }
 
-  // SCM comment lines
-  if (/^(GIT:|SVN:|AWS:)/.test(line)) {
-    decorations.push(markScm.range(lineStart, lineStart + line.length));
-    return;
+  // SCM comments
+  const scmMatch = /(\s+)(GIT|SVN|SCM|VCS|AWS):/.exec(line);
+  if (scmMatch) {
+    const indentLen = scmMatch[1].length;
+    const markerEnd = scmMatch[0].length;
+    decorations.push(markScm.range(lineStart + scmMatch.index + indentLen, lineStart + scmMatch.index + markerEnd));
   }
 
   // TODOs

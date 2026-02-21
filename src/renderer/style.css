@@ -61,7 +61,7 @@
   --color-token-code: #a851ff;
   --color-token-scm: #808040;
   --color-token-todo-done: #00a000;
-  --color-token-todo-canceled: #840000;
+  --color-token-todo-canceled: #9e0202;
   --color-token-todo-active: #c3c12b;
   --color-validation: #ff6b6b;
 }
@@ -182,7 +182,7 @@ body {
 .tok-todo-canceled { color: var(--color-token-todo-canceled); }
 .tok-todo-later { color: var(--color-token-todo-active); }
 .tok-todo-doing { color: var(--color-token-todo-active); }
-.tok-timestamp { color: var(--color-text-dim); }
+.tok-timestamp { color: var(--color-text-muted); }
 
 #sidebar {
   width: var(--size-sidebar-width);
