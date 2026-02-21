@@ -171,18 +171,18 @@ body {
 }
 
 /* Syntax highlighting */
-.tok-tag { color: var(--color-token-tag); font-weight: bold; }
-.tok-mention { color: var(--color-token-tag); font-weight: bold; }
-.tok-url { color: var(--color-text-link); }
-.tok-bullet { color: var(--color-token-bullet); }
-.tok-code { color: var(--color-token-code); }
-.tok-codeblock { color: var(--color-token-bullet); }
-.tok-scm { color: var(--color-token-scm); }
-.tok-todo-done { color: var(--color-token-todo-done); }
-.tok-todo-canceled { color: var(--color-token-todo-canceled); }
-.tok-todo-later { color: var(--color-token-todo-active); }
-.tok-todo-doing { color: var(--color-token-todo-active); }
-.tok-timestamp { color: var(--color-text-muted); }
+.cm-tok-hash-tag { color: var(--color-token-tag); font-weight: bold; }
+.cm-tok-mention { color: var(--color-token-tag); font-weight: bold; }
+.cm-tok-url { color: var(--color-text-link); }
+.cm-tok-bullet { color: var(--color-token-bullet); }
+.cm-tok-code { color: var(--color-token-code); }
+.cm-tok-codeblock { color: var(--color-token-bullet); }
+.cm-tok-scm { color: var(--color-token-scm); }
+.cm-tok-todo-done { color: var(--color-token-todo-done); }
+.cm-tok-todo-canceled { color: var(--color-token-todo-canceled); }
+.cm-tok-todo-later { color: var(--color-token-todo-active); }
+.cm-tok-todo-doing { color: var(--color-token-todo-active); }
+.cm-tok-timestamp { color: var(--color-text-muted); }
 
 #sidebar {
   width: var(--size-sidebar-width);

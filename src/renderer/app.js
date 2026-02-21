@@ -1,7 +1,10 @@
 import { EditorState, EditorSelection, Prec } from '@codemirror/state';
-import { EditorView, keymap, ViewPlugin, Decoration, highlightActiveLine, highlightActiveLineGutter, drawSelection } from '@codemirror/view';
+import { EditorView, keymap, ViewPlugin, highlightActiveLine, highlightActiveLineGutter, drawSelection } from '@codemirror/view';
 import { defaultKeymap, historyKeymap, history, insertNewlineAndIndent } from '@codemirror/commands';
 import { indentUnit } from '@codemirror/language';
+
+// custom language for tracker syntax highlighting
+import { trackerSyntax } from './language-tracker.js';
 
 // native CTRL+F for single editor
 // import { searchKeymap } from '@codemirror/search';
@@ -100,125 +103,6 @@ function outdentSelection(view) {
   return true;
 }
 
-// ─── Syntax Decorations ───────────────────────────────────────────────────────
-
-const markTag = Decoration.mark({ class: 'tok-tag' });
-const markMention = Decoration.mark({ class: 'tok-mention' });
-const markUrl = Decoration.mark({ class: 'tok-url' });
-const markBullet = Decoration.mark({ class: 'tok-bullet' });
-const markCode = Decoration.mark({ class: 'tok-code' });
-const markCodeBlock = Decoration.mark({ class: 'tok-codeblock' });
-const markScm = Decoration.mark({ class: 'tok-scm' });
-const markTodoDone = Decoration.mark({ class: 'tok-todo-done' });
-const markTodoCanceled = Decoration.mark({ class: 'tok-todo-canceled' });
-const markTodoLater = Decoration.mark({ class: 'tok-todo-later' });
-const markTodoDoing = Decoration.mark({ class: 'tok-todo-doing' });
-const markTimestamp = Decoration.mark({ class: 'tok-timestamp' });
-
-function applyLineDecorations(line, lineStart, decorations) {
-  if (!line) return;
-
-  // Timestamp at start
-  const tsMatch = /^(\d{2}:\d{2}\s+\d{4}-\d{2}-\d{2})/.exec(line);
-  if (tsMatch) {
-    decorations.push(markTimestamp.range(lineStart, lineStart + tsMatch[1].length));
-  }
-
-  // Bullet and therefore markers
-  const bulletMatch = /^([\t ]*)(?:[-*~]|\.:)/.exec(line);
-  if (bulletMatch) {
-    const indentLen = bulletMatch[1].length;
-    const markerEnd = bulletMatch[0].length;
-    decorations.push(markBullet.range(lineStart + bulletMatch.index + indentLen, lineStart + bulletMatch.index + markerEnd));
-  }
-
-  // SCM comments
-  const scmMatch = /(\s+)(GIT|SVN|SCM|VCS|AWS):/.exec(line);
-  if (scmMatch) {
-    const indentLen = scmMatch[1].length;
-    const markerEnd = scmMatch[0].length;
-    decorations.push(markScm.range(lineStart + scmMatch.index + indentLen, lineStart + scmMatch.index + markerEnd));
-  }
-
-  // TODOs
-  const todoPatterns = [
-    { re: /\[✔\]|\[v\]/g, mark: markTodoDone },
-    { re: /\[x\]/g, mark: markTodoCanceled },
-    { re: /\[ \]/g, mark: markTodoLater },
-    { re: /\[~\]/g, mark: markTodoDoing },
-  ];
-  for (const { re, mark } of todoPatterns) {
-    let m;
-    re.lastIndex = 0;
-    while ((m = re.exec(line)) !== null) {
-      decorations.push(mark.range(lineStart + m.index, lineStart + m.index + m[0].length));
-    }
-  }
-
-  // Code blocks { ... }
-  let inBlock = false;
-  let blockStart = -1;
-  for (let i = 0; i < line.length; i++) {
-    if (line[i] === '{' && !inBlock) { inBlock = true; blockStart = i; }
-    else if (line[i] === '}' && inBlock) {
-      decorations.push(markCodeBlock.range(lineStart + blockStart, lineStart + i + 1));
-      inBlock = false;
-    }
-  }
-
-  // Inline code `...`
-  const codeRe = /`[^`]+`/g;
-  let cm;
-  while ((cm = codeRe.exec(line)) !== null) {
-    decorations.push(markCode.range(lineStart + cm.index, lineStart + cm.index + cm[0].length));
-  }
-
-  // URLs
-  const urlRe = /https?:\/\/[^\s\t]+/g;
-  let um;
-  while ((um = urlRe.exec(line)) !== null) {
-    decorations.push(markUrl.range(lineStart + um.index, lineStart + um.index + um[0].length));
-  }
-
-  // Tags and Mentions
-  const idRe = /(?:^|\t|\s)(#[\w.-]*|@[\w.-]*)/g;
-  let im;
-  while ((im = idRe.exec(line)) !== null) {
-    const fullMatch = im[0];
-    const id = im[1];
-    const idStart = lineStart + im.index + (fullMatch.length - id.length);
-    const mark = id.startsWith('#') ? markTag : markMention;
-    decorations.push(mark.range(idStart, idStart + id.length));
-  }
-}
-
-function buildDecorations(view) {
-  const decorations = [];
-  for (const { from, to } of view.visibleRanges) {
-    let lineStart = from;
-    for (let i = from; i <= to; i++) {
-      const ch = i < to ? view.state.doc.sliceString(i, i + 1) : '\n';
-      if (ch === '\n' || i === to) {
-        const lineText = view.state.doc.sliceString(lineStart, i);
-        applyLineDecorations(lineText, lineStart, decorations);
-        lineStart = i + 1;
-      }
-    }
-  }
-  return Decoration.set(decorations, true);
-}
-
-const syntaxPlugin = ViewPlugin.fromClass(class {
-  constructor(view) {
-    this.decorations = buildDecorations(view);
-  }
-  update(update) {
-    if (update.docChanged || update.viewportChanged) {
-      this.decorations = buildDecorations(update.view);
-    }
-  }
-}, { decorations: v => v.decorations });
-
 // ─── App State ────────────────────────────────────────────────────────────────
 
 const editorContainer = document.getElementById('editor-container');
@@ -297,7 +181,7 @@ async function loadEditors() {
   clearEditors();
 
   for (const date of dates) {
-    const content = await electronAPI.readFile(date) || null;
+    let content = await electronAPI.readFile(date) || null;
     // skip non-existent files (null) but still create editors for empty files ('')
     if (content === null) {
       // but always create an editor for today
@@ -440,7 +324,7 @@ function createEditor(container, content, date, isToday) {
           }
         }
       ]),
-      syntaxPlugin,
+      trackerSyntax,
       autoSavePlugin,
       // drawSelection(),
       highlightActiveLine(),
