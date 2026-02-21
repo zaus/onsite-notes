@@ -112,7 +112,7 @@ export class Analyzer {
     const offMinutes = summary.totalMinutes - summary.activeMinutes;
 
     let out = '=== SUMMARY ===\n';
-    out += `${summary.entryCount} entries, ${summary.projectCount} projects\n, ${summary.dayCount} days\n`;
+    out += `${summary.entryCount} entries, ${summary.projectCount} projects, ${summary.dayCount} days\n`;
     out += `${this.fmt(summary.averageMinutesPerDay)}/day --> ${this.fmt(summary.averageActiveMinutesPerDay)}/day active\n`;
     out += `${this.fmt(summary.totalMinutes)}  |  ${this.fmt(summary.activeMinutes)} (${this.dec(summary.activeMinutes)}) = ${this.pct(summary.activeMinutes, summary.totalMinutes)}% on  `;
     out += `${this.fmt(offMinutes)} (${this.dec(offMinutes)}) = ${this.pct(offMinutes, summary.totalMinutes)}% off\n\n`;
@@ -126,7 +126,7 @@ export class Analyzer {
 
     out += `\n=== TOPICS (${summary.topics.length}) ===\n`;
     for (const stat of summary.topics) {
-      out += `- ${this.fmt(stat.minutes)}\t${this.dec(stat.minutes)}\t${stat.id}\t${stat.project || ''}\t(${this.pct(stat.minutes, summary.totalMinutes)}%)\n`;
+      out += `${this.fmt(stat.minutes)}\t${this.dec(stat.minutes)}\t${stat.id}\t${stat.project || ''}\t(${this.pct(stat.minutes, summary.totalMinutes)}%)\n`;
     }
 
     return out;

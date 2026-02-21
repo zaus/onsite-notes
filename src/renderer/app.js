@@ -628,6 +628,16 @@ function showAnalysis() {
   const analysisOutput = content.querySelector('#analysis-output');
   if (!customRange || !rangeStartInput || !rangeEndInput || !analysisOutput || rangeRadios.length === 0 || formatRadios.length === 0) return;
 
+  analysisOutput.addEventListener('dblclick', (event) => {
+    event.preventDefault();
+    const selection = window.getSelection();
+    if (!selection) return;
+    const range = document.createRange();
+    range.selectNodeContents(analysisOutput);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
+
   rangeRadios.forEach((radio) => {
     radio.addEventListener('change', (event) => {
       customRange.classList.toggle('hidden', event.target.value !== 'custom');
