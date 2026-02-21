@@ -2,7 +2,12 @@ import { EditorState, EditorSelection, Prec } from '@codemirror/state';
 import { EditorView, keymap, ViewPlugin, Decoration, highlightActiveLine, highlightActiveLineGutter, drawSelection } from '@codemirror/view';
 import { defaultKeymap, historyKeymap, history, insertNewlineAndIndent } from '@codemirror/commands';
 import { indentUnit } from '@codemirror/language';
-import { searchKeymap } from '@codemirror/search';
+
+// native CTRL+F for single editor
+// import { searchKeymap } from '@codemirror/search';
+// global search service for searching across all editors and managing the search dialog state
+import { registerForSearch, showSearchDialog as showSearchDialogService } from './searchService.js';
+
 import { AutocompleteWidget } from './autocomplete.js';
 import { showPromptModal } from './promptModal.js';
 import { openModal } from './modalShell.js';
@@ -370,7 +375,11 @@ function createEditor(container, content, date, isToday) {
       keymap.of([
         ...defaultKeymap,
         ...historyKeymap,
-        ...searchKeymap,
+        // ...searchKeymap, // don't use built-in search keymap to avoid interfering with global search dialog (Ctrl+F)
+        {
+          key: 'Ctrl-F',
+          run: (view) => { showSearchDialogService(); return true; }
+        },
         {
           key: 'F9',
           run: (view) => { insertTimestamp(view, date); return true; }
@@ -477,6 +486,9 @@ function createEditor(container, content, date, isToday) {
   });
 
   const view = new EditorView({ state, parent: container });
+
+  registerForSearch(view);
+
   return view;
 }
 
