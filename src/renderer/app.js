@@ -12,8 +12,8 @@ import { trackerSyntax } from './language-tracker.js';
 import { registerForSearch, showSearchDialog as showSearchDialogService } from './searchService.js';
 
 import { AutocompleteWidget } from './autocomplete.js';
-import { showPromptModal } from './promptModal.js';
-import { openModal } from './modalShell.js';
+import { showPromptModal } from './promptModal';
+import { openModal } from './modalShell';
 
 const electronAPI = window.electronAPI;
 

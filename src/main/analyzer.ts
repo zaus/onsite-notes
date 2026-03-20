@@ -1,4 +1,4 @@
-import { parseEntries, LogEntry } from './parser';
+import { parseEntries, type LogEntry } from './parser.js';
 
 interface IdStats {
   id: string;
@@ -44,7 +44,9 @@ export class Analyzer {
 
     const allEntries: LogEntry[] = [];
     for (const date of dates) {
-      const entries = parseEntries(contents[date], date);
+      const content = contents[date];
+      if (!content) continue;
+      const entries = parseEntries(content, date);
       allEntries.push(...entries);
     }
 
@@ -68,7 +70,7 @@ export class Analyzer {
         if (!idStats[entry.id]) {
           idStats[entry.id] = { id: entry.id, project: entry.project, minutes: 0, type: entry.type };
         }
-        idStats[entry.id].minutes += dur;
+        idStats[entry.id]!.minutes += dur;
         if (entry.project) projectSet.add(entry.project);
       }
     }

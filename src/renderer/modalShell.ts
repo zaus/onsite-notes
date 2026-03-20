@@ -1,6 +1,45 @@
-let activeSession = null;
+type ModalCloseReason = 'confirm' | 'cancel';
 
-function getModalElements() {
+type OpenModalContent = string | Node | DocumentFragment;
+
+type ModalSession = {
+  close: (reason?: ModalCloseReason) => Promise<void>;
+};
+
+type ModalElements = {
+  modal: HTMLElement;
+  modalContent: HTMLElement;
+  title: HTMLElement;
+  body: HTMLElement;
+  confirmButton: HTMLButtonElement;
+  cancelButton: HTMLButtonElement;
+  closeButton: HTMLButtonElement;
+};
+
+export type OpenModalContext = {
+  modal: HTMLElement;
+  body: HTMLElement;
+  confirmButton: HTMLButtonElement;
+  cancelButton: HTMLButtonElement;
+  closeButton: HTMLButtonElement;
+};
+
+export type OpenModalOptions = {
+  titleText?: string;
+  content?: OpenModalContent;
+  confirmText?: string;
+  cancelText?: string;
+  showConfirm?: boolean;
+  showCancel?: boolean;
+  onOpen?: (context: OpenModalContext) => void;
+  onConfirm?: () => boolean | void | Promise<boolean | void>;
+  onCancel?: () => void;
+  width?: string;
+};
+
+let activeSession: ModalSession | null = null;
+
+function getModalElements(): ModalElements | null {
   const modal = document.getElementById('app-modal');
   const modalContent = document.getElementById('app-modal-content');
   const title = document.getElementById('app-modal-title');
@@ -13,10 +52,18 @@ function getModalElements() {
     return null;
   }
 
-  return { modal, modalContent, title, body, confirmButton, cancelButton, closeButton };
+  return {
+    modal,
+    modalContent,
+    title,
+    body,
+    confirmButton: confirmButton as HTMLButtonElement,
+    cancelButton: cancelButton as HTMLButtonElement,
+    closeButton: closeButton as HTMLButtonElement
+  };
 }
 
-function toNode(content) {
+function toNode(content: OpenModalContent = ''): Node {
   if (typeof content === 'string') {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = content;
@@ -32,7 +79,7 @@ function toNode(content) {
   return document.createElement('div');
 }
 
-export function openModal(options = {}) {
+export function openModal(options: OpenModalOptions = {}): ModalSession | null {
   const elements = getModalElements();
   if (!elements) return null;
 
@@ -46,7 +93,7 @@ export function openModal(options = {}) {
     onOpen,
     onConfirm,
     onCancel,
-    width,
+    width
   } = options;
 
   if (activeSession) {
@@ -84,7 +131,7 @@ export function openModal(options = {}) {
     }
   };
 
-  const close = async (reason = 'cancel') => {
+  const close = async (reason: ModalCloseReason = 'cancel') => {
     if (closed) return;
     closed = true;
 
@@ -111,7 +158,7 @@ export function openModal(options = {}) {
     await close('cancel');
   };
 
-  const onKeyDown = async (event) => {
+  const onKeyDown = async (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
@@ -137,7 +184,7 @@ export function openModal(options = {}) {
     }
   };
 
-  const onDocumentKeyDown = async (event) => {
+  const onDocumentKeyDown = async (event: KeyboardEvent) => {
     if (!activeSession || activeSession.close !== close) return;
 
     if (event.key === 'Escape') {

@@ -1,17 +1,28 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": ["ES2020"],
-    "outDir": "./dist/main",
-    "rootDir": "./src/main",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
+    "esModuleInterop": true, // mends fences b/w CommonJS and ES modules
+    "skipLibCheck": true, // skips checking types of .d.ts files, which can speed up compilation
+    "target": "es2022", // compatibility level
+    "lib": ["ES2022", "DOM"], // what's available in the environment
+
+    // useful to import js and json files
+    "allowJs": true,
     "resolveJsonModule": true,
-    "types": ["node", "electron"],
+    "checkJs": false, // false = don't blow up while we're transitioning, do it per-file with @ts-check
+
+    "moduleDetection": "force", // forces all files to be treated as modules, which is important for type safety and module resolution
+    "isolatedModules": true, // ensures that each file can be safely transpiled in isolation, which is important for tools like Babel or Webpack
+    "verbatimModuleSyntax": true, // forces predictable module syntax, which can help with interoperability and tooling
+    
+    "strict": true, // enables all strict type-checking options, which can help catch potential errors and improve code quality
+    "noUncheckedIndexedAccess": true, // adds undefined to the type of indexed access results, which can help catch potential runtime errors
+    "noImplicitOverride": true, // requires explicit override declarations for class methods, which can help catch errors when overriding methods
+    
+    "module": "nodenext", // which resolution strategy; NodeNext = compatibility with Node.js and modern JavaScript, Preserve = more of a passthrough for linting only
+    // "moduleResolution": "bundler", // how modules are resolved; bundler = optimized for bundlers like Webpack, which can handle various module formats and features
+
+    // sharing options, monorepo stuff if necessary, etc
+    "declaration": true, // generates .d.ts files for type declarations, which can be useful for library authors and consumers
     "sourceMap": true
-  },
-  "include": ["src/main/**/*"],
-  "exclude": ["node_modules", "dist"]
+  }
 }

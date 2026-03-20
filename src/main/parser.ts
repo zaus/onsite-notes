@@ -15,13 +15,13 @@ const TIMESTAMP_WITH_DATE_RE = /^(\d{2}:\d{2})\s+(\d{4}-\d{2}-\d{2})\s/;
 const TIMESTAMP_ONLY_RE = /^(\d{2}:\d{2})\s/;
 const TODO_RE = /\[([ x✔v~])\]|(NOW|DOING|LATER|DONE|CANCELED)\b/g;
 
-function parseTodoState(marker: string): string {
+function parseTodoState(marker: string | undefined): string {
   switch (marker) {
     case ' ': return 'LATER';
     case '~': return 'DOING';
     case '✔': case 'v': return 'DONE';
     case 'x': return 'CANCELED';
-    default: return marker; // NOW, DOING, etc.
+    default: return marker || ''; // NOW, DOING, etc.
   }
 }
 
@@ -31,10 +31,12 @@ export function parseEntries(content: string, defaultDate: string): LogEntry[] {
   let currentEntry: LogEntry | null = null;
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i]?.trim();
+
+    if (!line) continue; // skip empty lines
 
     // Day delimiter
-    if (/^[-=]{3,}/.test(line.trim())) {
+    if (/^[-=]{3,}/.test(line)) {
       if (currentEntry) entries.push(currentEntry);
       currentEntry = null;
       continue;
@@ -46,8 +48,8 @@ export function parseEntries(content: string, defaultDate: string): LogEntry[] {
     if (tsWithDateMatch || tsOnlyMatch) {
       if (currentEntry) entries.push(currentEntry);
 
-      const timestamp = tsWithDateMatch ? tsWithDateMatch[1] : tsOnlyMatch![1];
-      const date = tsWithDateMatch ? tsWithDateMatch[2] : defaultDate;
+      const timestamp = (tsWithDateMatch ? tsWithDateMatch[1] : tsOnlyMatch![1]) || '00:00';
+      const date = (tsWithDateMatch ? tsWithDateMatch[2] : defaultDate) || defaultDate;
       const matchedPrefix = tsWithDateMatch ? tsWithDateMatch[0] : tsOnlyMatch![0];
       const rest = line.slice(matchedPrefix.length);
       const parts = rest.split('\t');
@@ -58,7 +60,7 @@ export function parseEntries(content: string, defaultDate: string): LogEntry[] {
       let details = '';
 
       if (parts.length >= 1) {
-        const first = parts[0].trim();
+        const first = parts[0]!.trim();
         if (first.startsWith('#')) {
           type = 'tag';
           id = first;
@@ -71,7 +73,7 @@ export function parseEntries(content: string, defaultDate: string): LogEntry[] {
       }
 
       if (type !== 'plain' && parts.length >= 2) {
-        project = parts[1].trim() || null;
+        project = parts[1]!.trim() || null;
         details = parts.slice(2).join('\t').trim();
       }
 
@@ -106,18 +108,22 @@ export function parseEntries(content: string, defaultDate: string): LogEntry[] {
 
   // Calculate durations
   for (let i = 0; i < entries.length - 1; i++) {
-    const curr = entries[i];
-    const next = entries[i + 1];
+    const curr = entries[i]!;
+    const next = entries[i + 1]!;
     if (curr.date === next.date) {
       const [ch, cm] = curr.timestamp.split(':').map(Number);
       const [nh, nm] = next.timestamp.split(':').map(Number);
+
+      if (nh === undefined || ch === undefined || nm === undefined || cm === undefined)
+        throw new Error(`Invalid timestamp format at line ${curr.lineNumber + 1} or ${next.lineNumber + 1}`);
+
       curr.durationMinutes = (nh * 60 + nm) - (ch * 60 + cm);
       if (curr.durationMinutes < 0) curr.durationMinutes = null;
     }
   }
 
   // drop the last entry, which should have an unknown duration
-  if (entries.length > 0 && entries[entries.length - 1].durationMinutes === null)
+  if (entries.length > 0 && entries[entries.length - 1]!.durationMinutes === null)
     entries.pop();
 
   return entries;

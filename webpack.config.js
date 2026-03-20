@@ -24,9 +24,28 @@ module.exports = (env, argv) => {
           ]
         })
       ],
-      resolve: {
-        extensions: ['.js']
+      module: {
+        rules: [
+          {
+            test: /\.ts$/,
+            use: {
+              loader: 'ts-loader',
+              options: {
+                configFile: 'tsconfig.renderer.json'
+              }
+            },
+            exclude: /node_modules/
+          }
+        ]
       },
+      resolve: {
+        alias: {
+          // 'vue$': 'vue/dist/vue.esm.js',
+          '@': Path.resolve(__dirname, 'src')
+        },
+        extensions: ['.ts', '.js']
+      },
+      
       target: 'web'
     };
 };

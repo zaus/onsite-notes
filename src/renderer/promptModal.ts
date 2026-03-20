@@ -1,9 +1,20 @@
-import { openModal } from './modalShell.js';
+import { openModal } from './modalShell';
 
-export function showPromptModal(options = {}) {
+export type PromptModalOptions = {
+  titleText?: string;
+  labelText?: string;
+  placeholder?: string;
+  initialValue?: string;
+  confirmText?: string;
+  cancelText?: string;
+  validate?: (value: string) => boolean | string | void;
+  invalidMessage?: string;
+};
+
+export function showPromptModal(options: PromptModalOptions = {}): Promise<string | null> {
   return new Promise((resolve) => {
-    const template = document.getElementById('prompt-modal-template');
-    const content = template?.content?.cloneNode(true);
+    const template = document.getElementById('prompt-modal-template') as HTMLTemplateElement | null;
+    const content = template?.content?.cloneNode(true) as DocumentFragment | undefined;
     const {
       titleText = 'Prompt',
       labelText = 'Value',
@@ -32,7 +43,7 @@ export function showPromptModal(options = {}) {
     label.textContent = labelText;
     input.placeholder = placeholder;
 
-    const setValidationMessage = (message) => {
+    const setValidationMessage = (message: string) => {
       const text = (message || '').trim();
       validationMessage.textContent = text;
       validationMessage.classList.toggle('hidden', text.length === 0);
