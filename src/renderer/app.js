@@ -614,8 +614,7 @@ document.getElementById('sidebar-close').addEventListener('click', () => {
 if (electronAPI.onNotebookChanged) {
   electronAPI.onNotebookChanged(async (payload) => {
     currentNotebook = payload.currentNotebook;
-    clearEditors();
-    await loadEditors();
+    await loadEditors().catch(console.error);
   });
 }
 
@@ -629,4 +628,4 @@ if (electronAPI.onCreateNotebookRequested) {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
-loadEditors().catch(console.error);
+// don't need to call loadEditors as notebook change event will be emitted on initial load
