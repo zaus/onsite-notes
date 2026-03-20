@@ -13,12 +13,12 @@ test('parseEntries uses default date for timestamp-only lines', () => {
   const entries = parseEntries(content, '2026-02-20');
 
   expect(entries.length).toBe(3);
-  expect(entries[0].date).toBe('2026-02-20');
-  expect(entries[1].date).toBe('2026-02-20');
-  expect(entries[2].date).toBe('2026-02-20');
-  expect(entries[0].durationMinutes).toBe(90);
-  expect(entries[1].durationMinutes).toBe(30);
-  expect(entries[2].durationMinutes).toBe(60);
+  expect(entries[0]?.date).toBe('2026-02-20');
+  expect(entries[1]?.date).toBe('2026-02-20');
+  expect(entries[2]?.date).toBe('2026-02-20');
+  expect(entries[0]?.durationMinutes).toBe(90);
+  expect(entries[1]?.durationMinutes).toBe(30);
+  expect(entries[2]?.durationMinutes).toBe(60);
 });
 
 test('parseEntries preserves explicit inline date when present', () => {
@@ -31,9 +31,9 @@ test('parseEntries preserves explicit inline date when present', () => {
   const entries = parseEntries(content, '2026-02-20');
 
   expect(entries.length).toBe(2);
-  expect(entries[0].date).toBe('2026-02-19');
-  expect(entries[1].date).toBe('2026-02-19');
-  expect(entries[0].durationMinutes).toBe(60);
+  expect(entries[0]?.date).toBe('2026-02-19');
+  expect(entries[1]?.date).toBe('2026-02-19');
+  expect(entries[0]?.durationMinutes).toBe(60);
 });
 
 test('parseEntries parses entries from sample-entry fixture', () => {
@@ -44,13 +44,13 @@ test('parseEntries parses entries from sample-entry fixture', () => {
   console.table(entries);
 
   expect(entries.length).toBe(12); // drops the last entry with unknown duration
-  expect(entries[0].date).toBe('2026-02-20');
-  expect(entries[0].durationMinutes).toBe(1);
-  expect(entries[3].type).toBe('tag');
-  expect(entries[3].id).toBe('#this-topic');
-  expect(entries[3].durationMinutes).toBe(120);
-  expect(entries[4].durationMinutes).toBe(37);
-  expect(entries[5].id).toBe('#another-topic');
+  expect(entries[0]?.date).toBe('2026-02-20');
+  expect(entries[0]?.durationMinutes).toBe(1);
+  expect(entries[3]?.type).toBe('tag');
+  expect(entries[3]?.id).toBe('#this-topic');
+  expect(entries[3]?.durationMinutes).toBe(120);
+  expect(entries[4]?.durationMinutes).toBe(37);
+  expect(entries[5]?.id).toBe('#another-topic');
 });
 
 test('parseEntries parses timestamp-only fixture with default date', () => {
@@ -60,6 +60,6 @@ test('parseEntries parses timestamp-only fixture with default date', () => {
 
   expect(entries.length).toBe(2);
   expect(entries.map((entry) => entry.date)).toEqual(['2026-02-20', '2026-02-20']);
-  expect(entries[0].durationMinutes).toBe(90);
-  expect(entries[1].durationMinutes).toBe(30);
+  expect(entries[0]?.durationMinutes).toBe(90);
+  expect(entries[1]?.durationMinutes).toBe(30);
 });

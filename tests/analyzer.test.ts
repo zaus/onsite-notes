@@ -16,7 +16,7 @@ test('Analyzer includes day activity for timestamp-only entries', () => {
   expect(report).toMatch(/=== SUMMARY ===/);
   expect(report).toMatch(/2 entries, 1 projects/);
   expect(report).toMatch(/1 days/);
-  expect(report).toMatch(/2026-02-20: 2:00\s+\|\s+1:30/);
+  expect(report).toMatch(/2026-02-20\s+2:00\s+\|\s+1:30/);
 });
 
 test('Analyzer summarizes sample-entry fixture totals', () => {
@@ -43,5 +43,5 @@ test('Analyzer loads timestamp-only fixture and applies provided date', () => {
   });
 
   expect(report).toMatch(/2 entries, 1 projects/);
-  expect(report).toMatch(/2026-02-20: 2:00\s+\|\s+1:30/);
+  expect(report).toMatch(/2026-02-20\s+2:00\s+\|\s+1:30/);
 });
