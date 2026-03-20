@@ -4,14 +4,18 @@ import * as path from 'path';
 export class FileManager {
   constructor(private notesDir: string) {}
 
+  getPath(date: string): string {
+    return path.join(this.notesDir, `${date}.txt`);
+  }
+
   readFile(date: string): string | null {
-    const filePath = path.join(this.notesDir, `${date}.txt`);
+    const filePath = this.getPath(date);
     if (!fs.existsSync(filePath)) return null;
     return fs.readFileSync(filePath, 'utf-8');
   }
 
   writeFile(date: string, content: string): void {
-    const filePath = path.join(this.notesDir, `${date}.txt`);
+    const filePath = this.getPath(date);
     fs.writeFileSync(filePath, content, 'utf-8');
   }
 

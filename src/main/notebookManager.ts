@@ -58,6 +58,11 @@ export class NotebookManager {
     context.fileManager.writeFile(date, content);
   }
 
+  async getLocalPath(date: string): Promise<string> {
+    const context = await this.getCurrentContext();
+    return context.fileManager.getPath(date);
+  }
+
   async listFiles(): Promise<string[]> {
     const context = await this.getCurrentContext();
     return context.fileManager.listFiles();

@@ -624,6 +624,15 @@ if (electronAPI.onCreateNotebookRequested) {
     if (!enteredName) return;
     await switchNotebook(enteredName);
   });
+
+  if (electronAPI.onViewDaySourceRequested) {
+    electronAPI.onViewDaySourceRequested(async () => {
+      const editor = editors[activeEditorIndex];
+      if (editor) {
+        await electronAPI.openFileNatively(editor.date);
+      }
+    });
+  }
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────

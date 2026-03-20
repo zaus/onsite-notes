@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron';
 import type { IpcMainInvokeEvent, MenuItemConstructorOptions } from 'electron';
 import * as path from 'path';
 import { Analyzer } from './analyzer';
@@ -42,16 +42,20 @@ function buildAppMenu(win: BrowserWindow): void {
     {
       label: 'File',
       submenu: [
+        { label: 'New Notebook...', click: () => win.webContents.send('create-notebook-requested') },
+        { label: 'Switch Notebook', submenu: notebookItems },
         {
-          label: 'New Notebook...',
-          click: () => {
-            win.webContents.send('create-notebook-requested');
+          label: 'Reload Current Notebook',
+          click: async () => {
+            const current = notebookManager.getCurrentNotebook();
+            if (current) {
+              await notebookManager.setCurrentNotebook(current);
+              notifyNotebookChanged(win);
+            }
           }
         },
-        {
-          label: 'Switch Notebook',
-          submenu: notebookItems
-        },
+        { type: 'separator' },
+        { label: 'View Day Source', click: () => win.webContents.send('view-day-source-requested') },
         { type: 'separator' },
         { role: 'quit' }
       ]
@@ -124,6 +128,11 @@ app.whenReady().then(async () => {
   ipcMain.handle('write-file', async (_event: IpcMainInvokeEvent, date: string, content: string) => {
     await notebookManager.writeFile(date, content);
     return true;
+  });
+
+  ipcMain.handle('open-file-natively', async (_event: IpcMainInvokeEvent, date: string) => {
+    const path = await notebookManager.getLocalPath(date);
+    shell.openPath(path);
   });
 
   ipcMain.handle('list-files', async () => {
