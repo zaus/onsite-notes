@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron';
 import type { IpcMainInvokeEvent, MenuItemConstructorOptions } from 'electron';
 import * as path from 'path';
 import { Analyzer } from './analyzer';
+import { AppSettingsStore } from './appSettings';
 import { NotebookManager } from './notebookManager';
 
 const safeMode = process.env.ELECTRON_SAFE_MODE === '1';
@@ -87,6 +88,13 @@ function buildAppMenu(win: BrowserWindow): void {
       ]
     },
     {
+      label: 'Settings',
+      submenu: [
+        { label: 'Set Prior Days...', click: () => win.webContents.send('set-prior-days-requested') },
+        { label: 'Set Load More Chunk...', click: () => win.webContents.send('set-load-more-chunk-requested') }
+      ]
+    },
+    {
       label: 'Window',
       submenu: [
         { role: 'minimize' },
@@ -120,6 +128,7 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   await notebookManager.init('default');
+  const appSettingsStore = new AppSettingsStore(app.getPath('userData'));
 
   ipcMain.handle('read-file', async (_event: IpcMainInvokeEvent, date: string) => {
     return notebookManager.readFile(date);
@@ -137,6 +146,10 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('list-files', async () => {
     return notebookManager.listFiles();
+  });
+
+  ipcMain.handle('list-older-dates', async (_event: IpcMainInvokeEvent, beforeDate: string, limit: number) => {
+    return notebookManager.listOlderDates(beforeDate, limit);
   });
 
   ipcMain.handle('get-autocomplete', async (_event: IpcMainInvokeEvent, prefix: string, type: string) => {
@@ -170,9 +183,28 @@ app.whenReady().then(async () => {
     return notebookManager.listNotebooks();
   });
 
-  ipcMain.handle('get-config', async () => {
+  ipcMain.handle('set-load-more-chunk-days', async (_event: IpcMainInvokeEvent, days: number) => {
+    const parsed = appSettingsStore.setLoadMoreChunkDays(days);
     return {
-      priorDays: 3,
+      loadMoreChunkDays: parsed
+    };
+  });
+
+  ipcMain.handle('set-prior-days', async (_event: IpcMainInvokeEvent, days: number) => {
+    const parsed = appSettingsStore.setPriorDays(days);
+    return {
+      priorDays: parsed
+    };
+  });
+
+  ipcMain.handle('get-config', async () => {
+    const fallbackPriorDays = 3;
+    const priorDays = appSettingsStore.resolvePriorDays(fallbackPriorDays);
+    const loadMoreChunkDays = appSettingsStore.resolveLoadMoreChunkDays(priorDays);
+
+    return {
+      priorDays,
+      loadMoreChunkDays,
       currentNotebook: notebookManager.getCurrentNotebook(),
       notebooks: notebookManager.listNotebooks(),
       notebooksRootDir: notebookManager.getNotebooksRootDir()

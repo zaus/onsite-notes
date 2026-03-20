@@ -4,15 +4,15 @@ import { defaultKeymap, historyKeymap, history, insertNewlineAndIndent } from '@
 import { indentUnit } from '@codemirror/language';
 
 // custom language for tracker syntax highlighting
-import { trackerSyntax } from './language-tracker.js';
+import { trackerSyntax } from './language-tracker';
 
 // native CTRL+F for single editor
 // import { searchKeymap } from '@codemirror/search';
 // global search service for searching across all editors and managing the search dialog state
-import { registerForSearch, showSearchDialog as showSearchDialogService } from './searchService.js';
+import { registerAllForSearch, showSearchDialog as showSearchDialogService } from './searchService';
 
-import { AutocompleteWidget } from './autocomplete.js';
-import { buildAutocompleteInsertText } from './autocompleteInsertion.js';
+import { AutocompleteWidget } from './autocomplete';
+import { buildAutocompleteInsertText } from './autocompleteInsertion';
 import { showPromptModal } from './promptModal';
 import { openModal } from './modalShell';
 
@@ -111,6 +111,7 @@ const autocompleteContainer = document.getElementById('autocomplete-container');
 const statusFile = document.getElementById('status-file');
 const statusTime = document.getElementById('status-time');
 const currentTimeEl = document.getElementById('current-time');
+const loadMoreBtn = document.getElementById('btn-load-more');
 
 const autocomplete = new AutocompleteWidget(autocompleteContainer);
 
@@ -119,6 +120,40 @@ let saveTimers = {};
 let activeEditorIndex = 0;
 let currentNotebook = 'default';
 let priorDays = 3;
+let loadMoreChunkDays = 3;
+let hasMoreOlderDays = true;
+let isLoadingOlderDays = false;
+let canAutoLoadOlderDays = false;
+const loadedDates = new Set();
+const AUTO_LOAD_TOP_THRESHOLD_PX = 48;
+
+function toPositiveInt(value, fallback) {
+  const parsed = Number(value);
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return Math.floor(parsed);
+  }
+  return fallback;
+}
+
+function setLoadMoreButtonState() {
+  if (!loadMoreBtn) {
+    return;
+  }
+
+  const chunkLabel = loadMoreChunkDays === 1 ? 'Day' : 'Days';
+  if (isLoadingOlderDays) {
+    loadMoreBtn.textContent = 'Loading...';
+    loadMoreBtn.disabled = true;
+    return;
+  }
+
+  loadMoreBtn.textContent = `Load ${loadMoreChunkDays} More ${chunkLabel}`;
+  loadMoreBtn.disabled = !hasMoreOlderDays;
+}
+
+function refreshSearchRegistration() {
+  registerAllForSearch(editors.map(({ view, section }) => ({ view, section })));
+}
 
 function clearEditors() {
   for (const editor of editors) {
@@ -131,8 +166,10 @@ function clearEditors() {
 
   saveTimers = {};
   editors = [];
+  loadedDates.clear();
   activeEditorIndex = 0;
   editorContainer.innerHTML = '';
+  refreshSearchRegistration();
 }
 
 async function switchNotebook(notebookName) {
@@ -153,6 +190,40 @@ function requestNotebookName() {
   });
 }
 
+function requestLoadMoreChunkDays() {
+  return showPromptModal({
+    titleText: 'Load More Chunk Size',
+    labelText: 'Days to load per request',
+    placeholder: '3',
+    initialValue: String(loadMoreChunkDays),
+    confirmText: 'Save',
+    validate: (value) => {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return true;
+      }
+      return 'Enter a positive whole number.';
+    }
+  });
+}
+
+function requestPriorDays() {
+  return showPromptModal({
+    titleText: 'Initial Prior Days',
+    labelText: 'Days to load on startup',
+    placeholder: '3',
+    initialValue: String(priorDays),
+    confirmText: 'Save',
+    validate: (value) => {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return true;
+      }
+      return 'Enter a positive whole number.';
+    }
+  });
+}
+
 function updateTime() {
   const { time, date } = getNow();
   const display = `${time} ${date}`;
@@ -164,8 +235,13 @@ updateTime();
 
 async function loadEditors() {
   const config = await electronAPI.getConfig();
-  priorDays = config.priorDays || 3;
+  priorDays = toPositiveInt(config.priorDays, 3);
+  loadMoreChunkDays = toPositiveInt(config.loadMoreChunkDays, priorDays);
   currentNotebook = config.currentNotebook || currentNotebook;
+  hasMoreOlderDays = true;
+  isLoadingOlderDays = false;
+  canAutoLoadOlderDays = false;
+  setLoadMoreButtonState();
 
   const today = todayDate();
 
@@ -182,34 +258,10 @@ async function loadEditors() {
   clearEditors();
 
   for (const date of dates) {
-    let content = await electronAPI.readFile(date) || null;
-    // skip non-existent files (null) but still create editors for empty files ('')
-    if (content === null) {
-      // but always create an editor for today
-      if (date === today) content = '';
-      else continue;
-    }
-
-    const section = document.createElement('div');
-    section.className = 'day-section';
-
-    const header = document.createElement('div');
-    header.className = 'day-header';
-    header.textContent = date + (date === today ? ' (today)' : '');
-    section.appendChild(header);
-
-    const editorDiv = document.createElement('div');
-    section.appendChild(editorDiv);
-    editorContainer.appendChild(section);
-
-    const isToday = date === today;
-    const view = createEditor(editorDiv, content, date, isToday);
-    editors.push({ date, view, section });
-
-    if (content) {
-      await electronAPI.indexContent(date, content);
-    }
+    await insertDayEditor(date, { prepend: false, forceCreate: date === today });
   }
+
+  refreshSearchRegistration();
 
   // Focus today's editor
   if (editors.length > 0) {
@@ -224,7 +276,106 @@ async function loadEditors() {
     if (last) {
       last.section.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
+    canAutoLoadOlderDays = true;
+    setLoadMoreButtonState();
   }, 100);
+}
+
+async function insertDayEditor(date, options = {}) {
+  const { prepend = false, forceCreate = false } = options;
+  if (loadedDates.has(date)) {
+    return false;
+  }
+
+  let content = await electronAPI.readFile(date);
+  if (content === null || content === undefined) {
+    if (!forceCreate) {
+      return false;
+    }
+    content = '';
+  }
+
+  const section = document.createElement('div');
+  section.className = 'day-section';
+
+  const header = document.createElement('div');
+  header.className = 'day-header';
+  header.textContent = date + (date === todayDate() ? ' (today)' : '');
+  section.appendChild(header);
+
+  const editorDiv = document.createElement('div');
+  section.appendChild(editorDiv);
+
+  if (prepend) {
+    editorContainer.insertBefore(section, editorContainer.firstChild);
+  } else {
+    editorContainer.appendChild(section);
+  }
+
+  const view = createEditor(editorDiv, content, date, date === todayDate());
+  const editorRecord = { date, view, section };
+
+  if (prepend) {
+    editors.unshift(editorRecord);
+    activeEditorIndex += 1;
+  } else {
+    editors.push(editorRecord);
+  }
+
+  loadedDates.add(date);
+
+  if (content) {
+    await electronAPI.indexContent(date, content);
+  }
+
+  return true;
+}
+
+async function loadOlderDays() {
+  if (isLoadingOlderDays || !hasMoreOlderDays || editors.length === 0) {
+    return;
+  }
+
+  const earliestDate = editors[0]?.date;
+  if (!earliestDate) {
+    return;
+  }
+
+  isLoadingOlderDays = true;
+  setLoadMoreButtonState();
+
+  try {
+    const olderDates = await electronAPI.listOlderDates(earliestDate, loadMoreChunkDays);
+    if (!olderDates || olderDates.length === 0) {
+      hasMoreOlderDays = false;
+      return;
+    }
+
+    const oldScrollTop = editorContainer.scrollTop;
+    const oldScrollHeight = editorContainer.scrollHeight;
+
+    let insertedCount = 0;
+    const datesToInsert = [...olderDates].reverse();
+    for (const date of datesToInsert) {
+      const inserted = await insertDayEditor(date, { prepend: true, forceCreate: false });
+      if (inserted) {
+        insertedCount += 1;
+      }
+    }
+
+    if (insertedCount === 0) {
+      hasMoreOlderDays = false;
+      return;
+    }
+
+    refreshSearchRegistration();
+
+    const newScrollHeight = editorContainer.scrollHeight;
+    editorContainer.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight);
+  } finally {
+    isLoadingOlderDays = false;
+    setLoadMoreButtonState();
+  }
 }
 
 function createEditor(container, content, date, isToday) {
@@ -375,9 +526,6 @@ function createEditor(container, content, date, isToday) {
   });
 
   const view = new EditorView({ state, parent: container });
-
-  registerForSearch(view);
-
   return view;
 }
 
@@ -611,6 +759,24 @@ document.getElementById('btn-endday').addEventListener('click', () => {
 
 document.getElementById('btn-analysis').addEventListener('click', showAnalysis);
 
+if (loadMoreBtn) {
+  loadMoreBtn.addEventListener('click', () => {
+    loadOlderDays().catch(console.error);
+  });
+}
+
+if (editorContainer) {
+  editorContainer.addEventListener('scroll', () => {
+    if (!canAutoLoadOlderDays || !hasMoreOlderDays || isLoadingOlderDays) {
+      return;
+    }
+
+    if (editorContainer.scrollTop <= AUTO_LOAD_TOP_THRESHOLD_PX) {
+      loadOlderDays().catch(console.error);
+    }
+  });
+}
+
 document.getElementById('sidebar-close').addEventListener('click', () => {
   document.getElementById('sidebar').classList.add('hidden');
 });
@@ -635,6 +801,30 @@ if (electronAPI.onCreateNotebookRequested) {
       if (editor) {
         await electronAPI.openFileNatively(editor.date);
       }
+    });
+  }
+
+  if (electronAPI.onSetLoadMoreChunkRequested) {
+    electronAPI.onSetLoadMoreChunkRequested(async () => {
+      const enteredValue = await requestLoadMoreChunkDays();
+      if (!enteredValue) return;
+
+      const parsed = toPositiveInt(enteredValue, loadMoreChunkDays);
+      const result = await electronAPI.setLoadMoreChunkDays(parsed);
+      loadMoreChunkDays = toPositiveInt(result?.loadMoreChunkDays, parsed);
+      setLoadMoreButtonState();
+    });
+  }
+
+  if (electronAPI.onSetPriorDaysRequested) {
+    electronAPI.onSetPriorDaysRequested(async () => {
+      const enteredValue = await requestPriorDays();
+      if (!enteredValue) return;
+
+      const parsed = toPositiveInt(enteredValue, priorDays);
+      const result = await electronAPI.setPriorDays(parsed);
+      priorDays = toPositiveInt(result?.priorDays, parsed);
+      await loadEditors();
     });
   }
 }

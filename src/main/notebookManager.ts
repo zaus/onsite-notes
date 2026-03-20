@@ -68,6 +68,22 @@ export class NotebookManager {
     return context.fileManager.listFiles();
   }
 
+  async listOlderDates(beforeDate: string, limit: number): Promise<string[]> {
+    const context = await this.getCurrentContext();
+    const files = context.fileManager.listFiles();
+    const maxItems = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 0;
+    if (maxItems <= 0) {
+      return [];
+    }
+
+    const olderDates = files
+      .filter(fileName => fileName.endsWith('.txt'))
+      .map(fileName => fileName.replace('.txt', ''))
+      .filter(date => date < beforeDate);
+
+    return olderDates.slice(-maxItems);
+  }
+
   async searchIds(prefix: string, type: string): Promise<Array<{ id: string; type: string; project: string | null }>> {
     const context = await this.getCurrentContext();
     return context.database.searchIds(prefix, type);
