@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Menu, MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu } from 'electron';
+import type { IpcMainInvokeEvent, MenuItemConstructorOptions } from 'electron';
 import * as path from 'path';
 import { Analyzer } from './analyzer';
 import { NotebookManager } from './notebookManager';

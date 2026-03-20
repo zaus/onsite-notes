@@ -1,4 +1,4 @@
-import { parseEntries, type LogEntry } from './parser.js';
+import { parseEntries, type LogEntry } from './parser';
 
 interface IdStats {
   id: string;

@@ -1,7 +1,7 @@
 import initSqlJs, { type Database as SqlJsDatabase } from 'sql.js';
 import * as fs from 'fs';
 import * as path from 'path';
-import { LogEntry } from './parser';
+import type { LogEntry } from './parser';
 
 export class Database {
   private db!: SqlJsDatabase;
@@ -65,10 +65,13 @@ export class Database {
   /** Convert sql.js query results into an array of plain objects */
   private toObjects<T>(results: ReturnType<SqlJsDatabase['exec']>): T[] {
     if (!results || results.length === 0) return [];
-    const { columns, values } = results[0];
-    return values.map(row => {
+    const first = results[0];
+    if (!first) return [];
+
+    const { columns, values } = first;
+    return values.map((row: unknown[]) => {
       const obj: Record<string, unknown> = {};
-      columns.forEach((col, i) => { obj[col] = row[i]; });
+      columns.forEach((col: string, i: number) => { obj[col] = row[i]; });
       return obj as T;
     });
   }

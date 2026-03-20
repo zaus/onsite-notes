@@ -13,13 +13,16 @@
     "moduleDetection": "force", // forces all files to be treated as modules, which is important for type safety and module resolution
     "isolatedModules": true, // ensures that each file can be safely transpiled in isolation, which is important for tools like Babel or Webpack
     "verbatimModuleSyntax": true, // forces predictable module syntax, which can help with interoperability and tooling
+    "noEmit": true, // allows us to use TypeScript for type-checking without generating JavaScript files, which can be useful in a project where another tool handles the actual bundling and transpilation
     
     "strict": true, // enables all strict type-checking options, which can help catch potential errors and improve code quality
     "noUncheckedIndexedAccess": true, // adds undefined to the type of indexed access results, which can help catch potential runtime errors
     "noImplicitOverride": true, // requires explicit override declarations for class methods, which can help catch errors when overriding methods
+    "noUnusedLocals": true, // keep code clean by flagging unused local variables
+    "noUnusedParameters": true, // keep code clean by flagging unused function parameters
     
-    "module": "nodenext", // which resolution strategy; NodeNext = compatibility with Node.js and modern JavaScript, Preserve = more of a passthrough for linting only
-    // "moduleResolution": "bundler", // how modules are resolved; bundler = optimized for bundlers like Webpack, which can handle various module formats and features
+    "module": "esnext", // which resolution strategy; NodeNext = compatibility with Node.js and modern JavaScript, Preserve = more of a passthrough for linting only, ESNext = keep source-level ESM for tooling/bundlers, CommonJS = traditional Node.js modules
+    "moduleResolution": "bundler", // how modules are resolved; bundler = optimized for bundlers like Webpack, which can handle various module formats and features, does not force explicit .js extensions in imports, Node = mimics Node.js resolution, which can be more strict and require explicit extensions, classic = TypeScript's original resolution strategy, which is less common and not recommended for modern projects
 
     // sharing options, monorepo stuff if necessary, etc
     "declaration": true, // generates .d.ts files for type declarations, which can be useful for library authors and consumers

@@ -3,16 +3,15 @@
   "version": "1.0.0",
   "description": "Simple note-taking application with time tracking",
   "main": "dist/main/main.js",
-  "type": "module",
   "scripts": {
     "build": "npx tsc -p tsconfig.main.json && webpack --config webpack.config.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "start": "npm run build && electron .",
-    "dev": "electron .",
+    "dev": "npm run build && electron .",
     "//safemode": "added safe mode scripts to help with GPU-related crashes on some machines",
     "start:safe": "npm run build && set ELECTRON_SAFE_MODE=1&& electron .",
-    "dev:safe": "set ELECTRON_SAFE_MODE=1&& electron ."
+    "dev:safe": "npm run build && set ELECTRON_SAFE_MODE=1&& electron ."
   },
   "dependencies": {
     "@types/sql.js": "^1.4.9",

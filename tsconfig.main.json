@@ -3,6 +3,10 @@
   "compilerOptions": {
     "outDir": "./dist/main",
     "rootDir": "./src/main",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "verbatimModuleSyntax": false,
+    "noEmit": false,
     "types": ["node", "electron"],
   },
   "include": ["src/main/**/*"],
