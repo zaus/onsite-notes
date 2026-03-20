@@ -13,6 +13,7 @@ export interface LogEntry {
 
 const TIMESTAMP_WITH_DATE_RE = /^(\d{2}:\d{2})\s+(\d{4}-\d{2}-\d{2})\s/;
 const TIMESTAMP_ONLY_RE = /^(\d{2}:\d{2})\s/;
+export const TIMESTAMP_PREFIX_RE = /^(\d{2}:\d{2})(?:\s+\d{4}-\d{2}-\d{2})?\s+/;
 const TODO_RE = /\[([ x✔v~])\]|(NOW|DOING|LATER|DONE|CANCELED)\b/g;
 
 function parseTodoState(marker: string | undefined): string {

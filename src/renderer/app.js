@@ -12,6 +12,7 @@ import { trackerSyntax } from './language-tracker.js';
 import { registerForSearch, showSearchDialog as showSearchDialogService } from './searchService.js';
 
 import { AutocompleteWidget } from './autocomplete.js';
+import { buildAutocompleteInsertText } from './autocompleteInsertion.js';
 import { showPromptModal } from './promptModal';
 import { openModal } from './modalShell';
 
@@ -474,9 +475,12 @@ async function handleAutocomplete(view) {
 
   autocomplete.show(items, { x: coords.left, y: coords.bottom + 2 }, (item) => {
     const start = sel.head - prefix.length;
+    const startInLine = start - line.from;
+    const insertText = buildAutocompleteInsertText({ lineText, startInLine, type, item });
+
     view.dispatch({
-      changes: { from: start, to: sel.head, insert: item.id },
-      selection: { anchor: start + item.id.length }
+      changes: { from: start, to: sel.head, insert: insertText },
+      selection: { anchor: start + insertText.length }
     });
     view.focus();
   });
