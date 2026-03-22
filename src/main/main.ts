@@ -183,10 +183,10 @@ app.whenReady().then(async () => {
     return notebookManager.listNotebooks();
   });
 
-  ipcMain.handle('set-load-more-chunk-days', async (_event: IpcMainInvokeEvent, days: number) => {
-    const parsed = appSettingsStore.setLoadMoreChunkDays(days);
+  ipcMain.handle('set-load-more-days', async (_event: IpcMainInvokeEvent, days: number) => {
+    const parsed = appSettingsStore.setLoadMoreDays(days);
     return {
-      loadMoreChunkDays: parsed
+      loadMoreDays: parsed
     };
   });
 
@@ -200,11 +200,11 @@ app.whenReady().then(async () => {
   ipcMain.handle('get-config', async () => {
     const fallbackPriorDays = 3;
     const priorDays = appSettingsStore.resolvePriorDays(fallbackPriorDays);
-    const loadMoreChunkDays = appSettingsStore.resolveLoadMoreChunkDays(priorDays);
+    const loadMoreDays = appSettingsStore.resolveLoadMoreDays(priorDays);
 
     return {
       priorDays,
-      loadMoreChunkDays,
+      loadMoreDays: loadMoreDays,
       currentNotebook: notebookManager.getCurrentNotebook(),
       notebooks: notebookManager.listNotebooks(),
       notebooksRootDir: notebookManager.getNotebooksRootDir()

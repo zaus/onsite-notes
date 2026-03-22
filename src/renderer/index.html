@@ -9,11 +9,15 @@
 </head>
 <body>
   <div id="toolbar">
-    <button id="btn-timestamp" title="Insert Timestamp (F9)">⏱ Timestamp</button>
-    <button id="btn-endday" title="End Day (Ctrl+F9)">📅 End Day</button>
-    <button id="btn-analysis" title="Analysis (F1)">📊 Analysis</button>
-    <button id="btn-load-more" title="Load older entries">⬆ Load More Days</button>
-    <span id="current-time"></span>
+    <section class="left">
+      <button id="btn-timestamp" title="Insert Timestamp (F9)">⏱ Timestamp</button>
+      <button id="btn-endday" title="End Day (Ctrl+F9)">📅 End Day</button>
+      <button id="btn-analysis" title="Analysis (F1)">📊 Analysis</button>
+    </section>
+    <section class="right">
+      <button id="btn-load-more" title="Load older entries">⬆ Load More Days</button>
+      <span id="current-time"></span>
+    </section>
   </div>
   <div id="main-area">
     <div id="editor-container"></div>

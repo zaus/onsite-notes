@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setNotebook: (name: string) => ipcRenderer.invoke('set-notebook', name),
   listNotebooks: () => ipcRenderer.invoke('list-notebooks'),
   setPriorDays: (days: number) => ipcRenderer.invoke('set-prior-days', days),
-  setLoadMoreChunkDays: (days: number) => ipcRenderer.invoke('set-load-more-chunk-days', days),
+  setLoadMoreDays: (days: number) => ipcRenderer.invoke('set-load-more-days', days),
   onNotebookChanged: (callback: (payload: { currentNotebook: string; notebooks: string[] }) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, payload: { currentNotebook: string; notebooks: string[] }) => {
       callback(payload);
@@ -25,7 +25,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('create-notebook-requested', listener);
     return () => ipcRenderer.removeListener('create-notebook-requested', listener);
   },
-  onSetLoadMoreChunkRequested: (callback: () => void) => {
+  onSetLoadMoreDaysRequested: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on('set-load-more-chunk-requested', listener);
     return () => ipcRenderer.removeListener('set-load-more-chunk-requested', listener);

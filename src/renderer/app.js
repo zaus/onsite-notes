@@ -5,6 +5,7 @@ import { indentUnit } from '@codemirror/language';
 
 // custom language for tracker syntax highlighting
 import { trackerSyntax } from './language-tracker';
+import { toPositiveInt } from '../main/utilities';
 
 // native CTRL+F for single editor
 // import { searchKeymap } from '@codemirror/search';
@@ -120,34 +121,26 @@ let saveTimers = {};
 let activeEditorIndex = 0;
 let currentNotebook = 'default';
 let priorDays = 3;
-let loadMoreChunkDays = 3;
+let loadMoreDays = 3;
 let hasMoreOlderDays = true;
 let isLoadingOlderDays = false;
 let canAutoLoadOlderDays = false;
 const loadedDates = new Set();
 const AUTO_LOAD_TOP_THRESHOLD_PX = 48;
 
-function toPositiveInt(value, fallback) {
-  const parsed = Number(value);
-  if (Number.isFinite(parsed) && parsed > 0) {
-    return Math.floor(parsed);
-  }
-  return fallback;
-}
-
 function setLoadMoreButtonState() {
   if (!loadMoreBtn) {
     return;
   }
 
-  const chunkLabel = loadMoreChunkDays === 1 ? 'Day' : 'Days';
+  const chunkLabel = loadMoreDays === 1 ? 'Day' : 'Days';
   if (isLoadingOlderDays) {
     loadMoreBtn.textContent = 'Loading...';
     loadMoreBtn.disabled = true;
     return;
   }
 
-  loadMoreBtn.textContent = `Load ${loadMoreChunkDays} More ${chunkLabel}`;
+  loadMoreBtn.textContent = `Load ${loadMoreDays} More ${chunkLabel}`;
   loadMoreBtn.disabled = !hasMoreOlderDays;
 }
 
@@ -190,12 +183,12 @@ function requestNotebookName() {
   });
 }
 
-function requestLoadMoreChunkDays() {
+function requestLoadMoreDays() {
   return showPromptModal({
     titleText: 'Load More Chunk Size',
     labelText: 'Days to load per request',
     placeholder: '3',
-    initialValue: String(loadMoreChunkDays),
+    initialValue: String(loadMoreDays),
     confirmText: 'Save',
     validate: (value) => {
       const parsed = Number(value);
@@ -235,8 +228,8 @@ updateTime();
 
 async function loadEditors() {
   const config = await electronAPI.getConfig();
-  priorDays = toPositiveInt(config.priorDays, 3);
-  loadMoreChunkDays = toPositiveInt(config.loadMoreChunkDays, priorDays);
+  priorDays = toPositiveInt(config.priorDays) ?? 3;
+  loadMoreDays = toPositiveInt(config.loadMoreDays) ?? priorDays;
   currentNotebook = config.currentNotebook || currentNotebook;
   hasMoreOlderDays = true;
   isLoadingOlderDays = false;
@@ -345,7 +338,7 @@ async function loadOlderDays() {
   setLoadMoreButtonState();
 
   try {
-    const olderDates = await electronAPI.listOlderDates(earliestDate, loadMoreChunkDays);
+    const olderDates = await electronAPI.listOlderDates(earliestDate, loadMoreDays);
     if (!olderDates || olderDates.length === 0) {
       hasMoreOlderDays = false;
       return;
@@ -798,20 +791,20 @@ if (electronAPI.onCreateNotebookRequested) {
   if (electronAPI.onViewDaySourceRequested) {
     electronAPI.onViewDaySourceRequested(async () => {
       const editor = editors[activeEditorIndex];
-      if (editor) {
+      if (editor) {s
         await electronAPI.openFileNatively(editor.date);
       }
     });
   }
 
-  if (electronAPI.onSetLoadMoreChunkRequested) {
-    electronAPI.onSetLoadMoreChunkRequested(async () => {
-      const enteredValue = await requestLoadMoreChunkDays();
+  if (electronAPI.onSetLoadMoreRequested) {
+    electronAPI.onSetLoadMoreRequested(async () => {
+      const enteredValue = await requestLoadMoreDays();
       if (!enteredValue) return;
 
-      const parsed = toPositiveInt(enteredValue, loadMoreChunkDays);
-      const result = await electronAPI.setLoadMoreChunkDays(parsed);
-      loadMoreChunkDays = toPositiveInt(result?.loadMoreChunkDays, parsed);
+      const parsed = toPositiveInt(enteredValue) ?? loadMoreDays;
+      const result = await electronAPI.setloadMoreDays(parsed);
+      loadMoreDays = toPositiveInt(result?.loadMoreDays) ?? parsed;
       setLoadMoreButtonState();
     });
   }
@@ -821,9 +814,9 @@ if (electronAPI.onCreateNotebookRequested) {
       const enteredValue = await requestPriorDays();
       if (!enteredValue) return;
 
-      const parsed = toPositiveInt(enteredValue, priorDays);
+      const parsed = toPositiveInt(enteredValue) ?? priorDays;
       const result = await electronAPI.setPriorDays(parsed);
-      priorDays = toPositiveInt(result?.priorDays, parsed);
+      priorDays = toPositiveInt(result?.priorDays) ?? parsed;
       await loadEditors();
     });
   }
