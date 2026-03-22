@@ -12,6 +12,9 @@ import { searchKeymap } from '@codemirror/search';
 // global search service for searching across all editors and managing the search dialog state
 import { registerAllForSearch, showSearchDialog as showSearchDialogService } from './searchService';
 
+// LLM-powered search
+import { openLLMSearch } from './llmSearch';
+
 import { AutocompleteWidget } from './autocomplete';
 import { buildAutocompleteInsertText } from './autocompleteInsertion';
 import { showPromptModal } from './promptModal';
@@ -236,13 +239,8 @@ function requestLoadMoreDays() {
     placeholder: '3',
     initialValue: String(loadMoreDays),
     confirmText: 'Save',
-    validate: (value) => {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed) && parsed > 0) {
-        return true;
-      }
-      return 'Enter a positive whole number.';
-    }
+    validate: (value) => toPositiveInt(value) !== null || 'Enter a positive whole number.'
+
   });
 }
 
@@ -253,13 +251,7 @@ function requestPriorDays() {
     placeholder: '3',
     initialValue: String(priorDays),
     confirmText: 'Save',
-    validate: (value) => {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed) && parsed > 0) {
-        return true;
-      }
-      return 'Enter a positive whole number.';
-    }
+    validate: (value) => toPositiveInt(value) !== null || 'Enter a positive whole number.'
   });
 }
 
@@ -455,7 +447,7 @@ function createEditor(container, content, date, isToday) {
         ...searchKeymap, // or should we just use global search always?
         {
           key: 'Ctrl-Shift-F',
-          run: (view) => { showSearchDialogService(); return true; }
+          run: (view) => { openLLMSearch(); return true; }
         },
         {
           key: 'F9',
@@ -861,6 +853,7 @@ if (electronAPI.onCreateNotebookRequested) {
     });
   }
 
+  // hm...these feel like they should be consolidated (probably into a single config page instead of separate prompts) or at least don't need separate subhandlers
   if (electronAPI.onSetLoadMoreRequested) {
     electronAPI.onSetLoadMoreRequested(async () => {
       const enteredValue = await requestLoadMoreDays();

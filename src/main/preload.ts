@@ -42,3 +42,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   getConfig: () => ipcRenderer.invoke('get-config')
 });
+
+contextBridge.exposeInMainWorld('electron', {
+  llmChat: {
+    startSession: (scope: 'loaded' | 'full') => ipcRenderer.invoke('llm:start-session', scope),
+    sendMessage: (sessionId: string, userMessage: string) => ipcRenderer.invoke('llm:send-message', sessionId, userMessage),
+    closeSession: (sessionId: string) => ipcRenderer.invoke('llm:close-session', sessionId),
+    checkLLMHealth: () => ipcRenderer.invoke('llm:health-check'),
+  },
+});

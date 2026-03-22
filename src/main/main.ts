@@ -4,6 +4,8 @@ import * as path from 'path';
 import { Analyzer } from './analyzer';
 import { AppSettingsStore } from './appSettings';
 import { NotebookManager } from './notebookManager';
+import { createLLMProvider } from './llmProvider';
+import { NotebookRetriever } from './retrievalService';
 
 const safeMode = process.env.ELECTRON_SAFE_MODE === '1';
 if (safeMode) {
@@ -209,6 +211,143 @@ app.whenReady().then(async () => {
       notebooks: notebookManager.listNotebooks(),
       notebooksRootDir: notebookManager.getNotebooksRootDir()
     };
+  });
+
+  // LLM Chat Session Management
+  const llmSessions = new Map<string, {
+    context: string;
+    provider: any;
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    retrieved: any[];
+  }>();
+
+  function generateSessionId(): string {
+    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  ipcMain.handle('llm:health-check', async () => {
+    try {
+      const provider = createLLMProvider({
+        provider: appSettingsStore.getLLMProvider(),
+        baseUrl: appSettingsStore.getLLMBaseUrl(),
+        model: appSettingsStore.getLLMModel(),
+      });
+      return await provider.checkHealth();
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      return {
+        available: false,
+        error: `LLM check failed: ${errorMsg}`,
+        setupGuide: 'Please ensure Ollama is running on your system.',
+      };
+    }
+  });
+
+  ipcMain.handle('llm:start-session', async (_event: IpcMainInvokeEvent, scope: 'loaded' | 'full') => {
+    const sessionId = generateSessionId();
+    
+    try {
+      const provider = createLLMProvider({
+        provider: appSettingsStore.getLLMProvider(),
+        baseUrl: appSettingsStore.getLLMBaseUrl(),
+        model: appSettingsStore.getLLMModel(),
+      });
+
+      // Load notebook files for retrieval
+      const notebookPath = await notebookManager.getCurrentNotebookPath();
+      const retriever = new NotebookRetriever(notebookPath);
+      const loadedFiles = await notebookManager.listFiles();
+      const documents = await retriever.loadNotebook(scope, loadedFiles);
+
+      llmSessions.set(sessionId, {
+        context: '',
+        provider,
+        messages: [],
+        retrieved: documents,
+      });
+
+      return { sessionId };
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Failed to start LLM session: ${errorMsg}`);
+    }
+  });
+
+  ipcMain.handle('llm:send-message', async (
+    _event: IpcMainInvokeEvent,
+    sessionId: string,
+    userMessage: string
+  ) => {
+    const session = llmSessions.get(sessionId);
+    if (!session) {
+      throw new Error('Invalid session ID');
+    }
+
+    try {
+      // Add user message to history
+      session.messages.push({ role: 'user', content: userMessage });
+
+      // Perform retrieval on the first message
+      if (session.messages.length === 1) {
+        const notebookPath = await notebookManager.getCurrentNotebookPath();
+        const retriever = new NotebookRetriever(notebookPath);
+        const chunks = retriever.rankAndChunk(userMessage, session.retrieved, 5);
+        session.context = retriever.buildContext(chunks);
+      }
+
+      // Create async generator to stream tokens
+      const tokenGenerator = session.provider.chat(session.messages, session.context);
+
+      return {
+        async *[Symbol.asyncIterator]() {
+          let fullResponse = '';
+
+          try {
+            for await (const token of tokenGenerator) {
+              fullResponse += token;
+
+              yield {
+                type: 'token',
+                content: token,
+              };
+            }
+
+            // Add assistant response to history
+            session.messages.push({ role: 'assistant', content: fullResponse });
+
+            // Send citations at end
+            const notebookPath = await notebookManager.getCurrentNotebookPath();
+            const retriever = new NotebookRetriever(notebookPath);
+            const chunks = retriever.rankAndChunk(userMessage, session.retrieved, 3);
+            yield {
+              type: 'citations',
+              citations: chunks.map(c => ({
+                date: c.date,
+                snippet: c.snippet,
+              })),
+            };
+
+            yield {
+              type: 'done',
+            };
+          } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            yield {
+              type: 'error',
+              content: `Error: ${errorMsg}`,
+            };
+          }
+        },
+      };
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      throw new Error(`LLM message failed: ${errorMsg}`);
+    }
+  });
+
+  ipcMain.handle('llm:close-session', async (_event: IpcMainInvokeEvent, sessionId: string) => {
+    llmSessions.delete(sessionId);
+    return true;
   });
 
   const win = createWindow();

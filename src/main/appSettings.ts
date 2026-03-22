@@ -5,6 +5,10 @@ import { toPositiveInt } from './utilities';
 export type AppSettings = {
   priorDays?: number;
   loadMoreDays?: number;
+  llmProvider?: string;
+  llmBaseUrl?: string;
+  llmModel?: string;
+  llmSearchScope?: 'loaded' | 'full';
 };
 
 export class AppSettingsStore {
@@ -51,6 +55,42 @@ export class AppSettingsStore {
 
   resolveLoadMoreDays(fallback: number): number {
     return this.resolveSetting(process.env.ONSITE_LOAD_MORE_CHUNK_DAYS, this.settings.loadMoreDays, fallback);
+  }
+
+  getLLMProvider(): string {
+    return this.settings.llmProvider || 'ollama';
+  }
+
+  getLLMBaseUrl(): string {
+    return this.settings.llmBaseUrl || 'http://localhost:11434';
+  }
+
+  getLLMModel(): string {
+    return this.settings.llmModel || 'llama2';
+  }
+
+  getLLMSearchScope(): 'loaded' | 'full' {
+    return this.settings.llmSearchScope || 'loaded';
+  }
+
+  setLLMProvider(provider: string): void {
+    this.settings = { ...this.settings, llmProvider: provider };
+    this.save();
+  }
+
+  setLLMBaseUrl(url: string): void {
+    this.settings = { ...this.settings, llmBaseUrl: url };
+    this.save();
+  }
+
+  setLLMModel(model: string): void {
+    this.settings = { ...this.settings, llmModel: model };
+    this.save();
+  }
+
+  setLLMSearchScope(scope: 'loaded' | 'full'): void {
+    this.settings = { ...this.settings, llmSearchScope: scope };
+    this.save();
   }
 
   private setSetting<K extends keyof AppSettings>(key: K, value: number): number {

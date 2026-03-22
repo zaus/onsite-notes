@@ -31,6 +31,14 @@ export class NotebookManager {
     return this.notebooksRootDir;
   }
 
+  /**
+   * Get the file system path to the current notebook's notes directory.
+   */
+  async getCurrentNotebookPath(): Promise<string> {
+    const context = await this.getCurrentContext();
+    return context.notesDir;
+  }
+
   listNotebooks(): string[] {
     this.ensureDirExists(this.notebooksRootDir);
     return fs.readdirSync(this.notebooksRootDir)
