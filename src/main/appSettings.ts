@@ -66,7 +66,7 @@ export class AppSettingsStore {
   }
 
   getLLMModel(): string {
-    return this.settings.llmModel || 'llama2';
+    return this.settings.llmModel || 'llama3.2';
   }
 
   getLLMSearchScope(): 'loaded' | 'full' {
