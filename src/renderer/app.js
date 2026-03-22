@@ -118,6 +118,7 @@ const $currentTime = document.getElementById('current-time');
 const $btnTimestamp = document.getElementById('btn-timestamp');
 const $btnEndDay = document.getElementById('btn-endday');
 const $btnAnalysis = document.getElementById('btn-analysis');
+const $btnSearch = document.getElementById('btn-search');
 const $btnPrevEditor = document.getElementById('btn-prev-editor');
 const $btnNextEditor = document.getElementById('btn-next-editor');
 const $btnEditorEnd = document.getElementById('btn-editor-end');
@@ -424,6 +425,14 @@ function createEditor(container, content, date, isToday) {
     }
   ]));
 
+  // takes precedence over native keymaps
+  const superSearchKeymap = Prec.highest(keymap.of([
+    {
+      key: 'Ctrl-Shift-F | F3',
+      run: (view) => { openLLMSearch(); return true; }
+    }
+  ]));
+
   const autoSavePlugin = ViewPlugin.fromClass(class {
     update(update) {
       if (update.docChanged) {
@@ -440,15 +449,12 @@ function createEditor(container, content, date, isToday) {
     extensions: [
       history(),
       tabKeymap,
+      superSearchKeymap,
       indentUnit.of('\t'),
       keymap.of([
         ...defaultKeymap,
         ...historyKeymap,
         ...searchKeymap, // or should we just use global search always?
-        {
-          key: 'Ctrl-Shift-F',
-          run: (view) => { openLLMSearch(); return true; }
-        },
         {
           key: 'F9',
           run: (view) => { insertTimestamp(view, date); return true; }
@@ -799,6 +805,8 @@ $btnEndDay.addEventListener('click', () => {
 });
 
 $btnAnalysis.addEventListener('click', showAnalysis);
+
+$btnSearch.addEventListener('click', openLLMSearch);
 
 $btnPrevEditor.addEventListener('click', () => {
   focusAdjacentEditor(-1);
