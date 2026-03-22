@@ -274,7 +274,7 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle('llm:send-message', async (
-    _event: IpcMainInvokeEvent,
+    event: IpcMainInvokeEvent,
     sessionId: string,
     userMessage: string
   ) => {
@@ -295,50 +295,35 @@ app.whenReady().then(async () => {
         session.context = retriever.buildContext(chunks);
       }
 
-      // Create async generator to stream tokens
+      // Stream tokens back via push events — async iterables cannot cross IPC
       const tokenGenerator = session.provider.chat(session.messages, session.context);
 
-      return {
-        async *[Symbol.asyncIterator]() {
-          let fullResponse = '';
-
-          try {
-            for await (const token of tokenGenerator) {
-              fullResponse += token;
-
-              yield {
-                type: 'token',
-                content: token,
-              };
-            }
-
-            // Add assistant response to history
-            session.messages.push({ role: 'assistant', content: fullResponse });
-
-            // Send citations at end
-            const notebookPath = await notebookManager.getCurrentNotebookPath();
-            const retriever = new NotebookRetriever(notebookPath);
-            const chunks = retriever.rankAndChunk(userMessage, session.retrieved, 3);
-            yield {
-              type: 'citations',
-              citations: chunks.map(c => ({
-                date: c.date,
-                snippet: c.snippet,
-              })),
-            };
-
-            yield {
-              type: 'done',
-            };
-          } catch (err) {
-            const errorMsg = err instanceof Error ? err.message : String(err);
-            yield {
-              type: 'error',
-              content: `Error: ${errorMsg}`,
-            };
+      (async () => {
+        let fullResponse = '';
+        try {
+          for await (const token of tokenGenerator) {
+            fullResponse += token;
+            event.sender.send('llm:chunk', sessionId, { type: 'token', content: token });
           }
-        },
-      };
+
+          session.messages.push({ role: 'assistant', content: fullResponse });
+
+          const notebookPath = await notebookManager.getCurrentNotebookPath();
+          const retriever = new NotebookRetriever(notebookPath);
+          const chunks = retriever.rankAndChunk(userMessage, session.retrieved, 3);
+          event.sender.send('llm:chunk', sessionId, {
+            type: 'citations',
+            citations: chunks.map(c => ({ date: c.date, snippet: c.snippet })),
+          });
+
+          event.sender.send('llm:chunk', sessionId, { type: 'done' });
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          event.sender.send('llm:chunk', sessionId, { type: 'error', content: errorMsg });
+        }
+      })();
+
+      return { started: true };
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       throw new Error(`LLM message failed: ${errorMsg}`);

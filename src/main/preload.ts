@@ -49,5 +49,10 @@ contextBridge.exposeInMainWorld('electron', {
     sendMessage: (sessionId: string, userMessage: string) => ipcRenderer.invoke('llm:send-message', sessionId, userMessage),
     closeSession: (sessionId: string) => ipcRenderer.invoke('llm:close-session', sessionId),
     checkLLMHealth: () => ipcRenderer.invoke('llm:health-check'),
+    onChunk: (callback: (sessionId: string, chunk: any) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, sessionId: string, chunk: any) => callback(sessionId, chunk);
+      ipcRenderer.on('llm:chunk', listener);
+      return () => ipcRenderer.removeListener('llm:chunk', listener);
+    },
   },
 });

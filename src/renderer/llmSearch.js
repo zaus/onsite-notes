@@ -196,23 +196,32 @@ async function performLLMSearch(
       llmSearchSession = sessionResp.sessionId;
     }
 
-    // Stream response
+    // Stream response via push events (async iterables can't cross Electron IPC)
     responseDiv.textContent = '';
-    let citations = [];
 
-    const stream = await window.electron.llmChat.sendMessage(
-      llmSearchSession,
-      query
-    );
+    await new Promise((resolve, reject) => {
+      const removeListener = window.electron.llmChat.onChunk((sessionId, chunk) => {
+        if (sessionId !== llmSearchSession) return;
 
-    for await (const chunk of stream) {
-      if (chunk.type === 'token') {
-        responseDiv.textContent += chunk.content;
-      } else if (chunk.type === 'citations') {
-        citations = chunk.citations || [];
-        renderCitations(citationsList, citations);
-      }
-    }
+        if (chunk.type === 'token') {
+          responseDiv.textContent += chunk.content;
+        } else if (chunk.type === 'citations') {
+          renderCitations(citationsList, chunk.citations || []);
+        } else if (chunk.type === 'done') {
+          removeListener();
+          resolve();
+        } else if (chunk.type === 'error') {
+          removeListener();
+          reject(new Error(chunk.content));
+        }
+      });
+
+      // Start the stream (push events will arrive via onChunk)
+      window.electron.llmChat.sendMessage(llmSearchSession, query).catch((err) => {
+        removeListener();
+        reject(err);
+      });
+    });
 
     // Show follow-up input
     followupDiv.style.display = 'block';

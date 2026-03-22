@@ -414,6 +414,7 @@ function createEditor(container, content, date, isToday) {
     await electronAPI.indexContent(date, docContent);
   };
 
+  // takes precedence over native keymaps
   const tabKeymap = Prec.highest(keymap.of([
     {
       key: 'Tab',
