@@ -8,7 +8,7 @@ import { trackerSyntax } from './language-tracker';
 import { toPositiveInt } from '../main/utilities';
 
 // native CTRL+F for single editor
-// import { searchKeymap } from '@codemirror/search';
+import { searchKeymap } from '@codemirror/search';
 // global search service for searching across all editors and managing the search dialog state
 import { registerAllForSearch, showSearchDialog as showSearchDialogService } from './searchService';
 
@@ -117,6 +117,7 @@ const $btnEndDay = document.getElementById('btn-endday');
 const $btnAnalysis = document.getElementById('btn-analysis');
 const $btnPrevEditor = document.getElementById('btn-prev-editor');
 const $btnNextEditor = document.getElementById('btn-next-editor');
+const $btnEditorEnd = document.getElementById('btn-editor-end');
 const $btnLoadMore = document.getElementById('btn-load-more');
 const $btnSidebarClose = document.getElementById('sidebar-close');
 
@@ -151,6 +152,8 @@ function refreshSearchRegistration() {
 }
 
 function focusEditorAtIndex(index) {
+  if (index === null || index === undefined) index = editors.length - 1;
+
   const editor = editors[index];
   if (!editor) {
     return false;
@@ -160,6 +163,21 @@ function focusEditorAtIndex(index) {
   editor.section.scrollIntoView({ behavior: 'smooth', block: 'center' });
   editor.view.focus();
   $statusFile.textContent = editor.date + '.txt';
+  return true;
+}
+
+function jumpToEditorEnd(view) {
+  if (view === null || view === undefined) {
+    focusEditorAtIndex();
+    view = editors[activeEditorIndex].view;
+  }
+  const endPosition = view.state.doc.length;
+
+  view.dispatch({
+    selection: { anchor: endPosition },
+    scrollIntoView: true
+  });
+  view.focus();
   return true;
 }
 
@@ -434,9 +452,9 @@ function createEditor(container, content, date, isToday) {
       keymap.of([
         ...defaultKeymap,
         ...historyKeymap,
-        // ...searchKeymap, // don't use built-in search keymap to avoid interfering with global search dialog (Ctrl+F)
+        ...searchKeymap, // or should we just use global search always?
         {
-          key: 'Ctrl-F',
+          key: 'Ctrl-Shift-F',
           run: (view) => { showSearchDialogService(); return true; }
         },
         {
@@ -482,6 +500,10 @@ function createEditor(container, content, date, isToday) {
         {
           key: 'Ctrl-ArrowUp',
           run: () => focusAdjacentEditor(-1)
+        },
+        {
+          key: 'Ctrl-F7', // basically 'ctrl-end' but automatically to last editor too
+          run: () => jumpToEditorEnd()
         },
         {
           key: 'Enter',
@@ -792,6 +814,10 @@ $btnPrevEditor.addEventListener('click', () => {
 
 $btnNextEditor.addEventListener('click', () => {
   focusAdjacentEditor(1);
+});
+
+$btnEditorEnd.addEventListener('click', () => {
+  jumpToEditorEnd();
 });
 
 $btnLoadMore.addEventListener('click', () => {
