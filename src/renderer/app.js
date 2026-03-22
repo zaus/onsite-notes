@@ -112,6 +112,8 @@ const autocompleteContainer = document.getElementById('autocomplete-container');
 const statusFile = document.getElementById('status-file');
 const statusTime = document.getElementById('status-time');
 const currentTimeEl = document.getElementById('current-time');
+const prevEditorBtn = document.getElementById('btn-prev-editor');
+const nextEditorBtn = document.getElementById('btn-next-editor');
 const loadMoreBtn = document.getElementById('btn-load-more');
 
 const autocomplete = new AutocompleteWidget(autocompleteContainer);
@@ -146,6 +148,32 @@ function setLoadMoreButtonState() {
 
 function refreshSearchRegistration() {
   registerAllForSearch(editors.map(({ view, section }) => ({ view, section })));
+}
+
+function focusEditorAtIndex(index) {
+  const editor = editors[index];
+  if (!editor) {
+    return false;
+  }
+
+  activeEditorIndex = index;
+  editor.section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  editor.view.focus();
+  statusFile.textContent = editor.date + '.txt';
+  return true;
+}
+
+function focusAdjacentEditor(offset) {
+  if (editors.length === 0) {
+    return false;
+  }
+
+  const targetIndex = activeEditorIndex + offset;
+  if (targetIndex < 0 || targetIndex >= editors.length) {
+    return false;
+  }
+
+  return focusEditorAtIndex(targetIndex);
 }
 
 function clearEditors() {
@@ -258,9 +286,7 @@ async function loadEditors() {
 
   // Focus today's editor
   if (editors.length > 0) {
-    activeEditorIndex = editors.length - 1;
-    editors[activeEditorIndex].view.focus();
-    statusFile.textContent = editors[activeEditorIndex].date + '.txt';
+    focusEditorAtIndex(editors.length - 1);
   }
 
   // Scroll to bottom of today
@@ -440,6 +466,10 @@ function createEditor(container, content, date, isToday) {
           }
         },
         {
+          key: 'Ctrl-ArrowDown',
+          run: () => focusAdjacentEditor(1)
+        },
+        {
           key: 'ArrowUp',
           run: () => {
             if (autocomplete.visible) {
@@ -448,6 +478,10 @@ function createEditor(container, content, date, isToday) {
             }
             return false;
           }
+        },
+        {
+          key: 'Ctrl-ArrowUp',
+          run: () => focusAdjacentEditor(-1)
         },
         {
           key: 'Enter',
@@ -751,6 +785,18 @@ document.getElementById('btn-endday').addEventListener('click', () => {
 });
 
 document.getElementById('btn-analysis').addEventListener('click', showAnalysis);
+
+if (prevEditorBtn) {
+  prevEditorBtn.addEventListener('click', () => {
+    focusAdjacentEditor(-1);
+  });
+}
+
+if (nextEditorBtn) {
+  nextEditorBtn.addEventListener('click', () => {
+    focusAdjacentEditor(1);
+  });
+}
 
 if (loadMoreBtn) {
   loadMoreBtn.addEventListener('click', () => {
