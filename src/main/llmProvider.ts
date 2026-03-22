@@ -3,8 +3,6 @@
  * Currently supports Ollama-compatible providers.
  */
 
-import { OllamaProvider } from "./OllamaProvider";
-
 export interface LLMMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -30,29 +28,4 @@ export abstract class LLMProvider {
     messages: LLMMessage[],
     context?: string
   ): AsyncIterable<string>;
-}
-
-/**
- * LLM provider factory function type.
- */
-export type LLMProviderFactory = (config: {
-  provider: string;
-  baseUrl?: string;
-  model?: string;
-}) => LLMProvider;
-
-/**
- * Create LLM provider based on configuration.
- */
-export function createLLMProvider(config: {
-  provider: string;
-  baseUrl?: string;
-  model?: string;
-}): LLMProvider {
-  if (config.provider === 'ollama') {
-    return new OllamaProvider(config.baseUrl, config.model);
-  }
-  throw new Error(
-    `Unknown LLM provider: ${config.provider}. Supported: ollama`
-  );
 }

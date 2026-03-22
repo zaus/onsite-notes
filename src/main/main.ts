@@ -4,7 +4,7 @@ import * as path from 'path';
 import { Analyzer } from './analyzer';
 import { AppSettingsStore } from './appSettings';
 import { NotebookManager } from './notebookManager';
-import { createLLMProvider } from './llmProvider';
+import { createLLMProvider } from './llmProviderFactory';
 import { NotebookRetriever } from './retrievalService';
 
 const safeMode = process.env.ELECTRON_SAFE_MODE === '1';
@@ -201,8 +201,8 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('get-config', async () => {
     const fallbackPriorDays = 3;
-    const priorDays = appSettingsStore.resolvePriorDays(fallbackPriorDays);
-    const loadMoreDays = appSettingsStore.resolveLoadMoreDays(priorDays);
+    const priorDays = appSettingsStore.getPriorDays(fallbackPriorDays);
+    const loadMoreDays = appSettingsStore.getLoadMoreDays(priorDays);
 
     return {
       priorDays,

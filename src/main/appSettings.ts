@@ -49,12 +49,12 @@ export class AppSettingsStore {
     return this.setSetting('loadMoreDays', days);
   }
 
-  resolvePriorDays(fallback: number): number {
-    return this.resolveSetting(process.env.ONSITE_PRIOR_DAYS, this.settings.priorDays, fallback);
+  getPriorDays(fallback: number): number {
+    return this.resolveIntSetting(process.env.ONSITE_PRIOR_DAYS, this.settings.priorDays, fallback);
   }
 
-  resolveLoadMoreDays(fallback: number): number {
-    return this.resolveSetting(process.env.ONSITE_LOAD_MORE_CHUNK_DAYS, this.settings.loadMoreDays, fallback);
+  getLoadMoreDays(fallback: number): number {
+    return this.resolveIntSetting(process.env.ONSITE_LOAD_MORE_CHUNK_DAYS, this.settings.loadMoreDays, fallback);
   }
 
   getLLMProvider(): string {
@@ -104,7 +104,7 @@ export class AppSettingsStore {
     return parsed;
   }
 
-  private resolveSetting(envValue: string | undefined, stored: number | undefined, fallback: number): number {
+  private resolveIntSetting(envValue: string | undefined, stored: number | undefined, fallback: number): number {
     return toPositiveInt(envValue) ?? toPositiveInt(stored) ?? fallback;
   }
 }
