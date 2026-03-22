@@ -107,16 +107,20 @@ function outdentSelection(view) {
 
 // ─── App State ────────────────────────────────────────────────────────────────
 
-const editorContainer = document.getElementById('editor-container');
-const autocompleteContainer = document.getElementById('autocomplete-container');
-const statusFile = document.getElementById('status-file');
-const statusTime = document.getElementById('status-time');
-const currentTimeEl = document.getElementById('current-time');
-const prevEditorBtn = document.getElementById('btn-prev-editor');
-const nextEditorBtn = document.getElementById('btn-next-editor');
-const loadMoreBtn = document.getElementById('btn-load-more');
+const $editorContainer = document.getElementById('editor-container');
+const $autocompleteContainer = document.getElementById('autocomplete-container');
+const $statusFile = document.getElementById('status-file');
+const $statusTime = document.getElementById('status-time');
+const $currentTime = document.getElementById('current-time');
+const $btnTimestamp = document.getElementById('btn-timestamp');
+const $btnEndDay = document.getElementById('btn-endday');
+const $btnAnalysis = document.getElementById('btn-analysis');
+const $btnPrevEditor = document.getElementById('btn-prev-editor');
+const $btnNextEditor = document.getElementById('btn-next-editor');
+const $btnLoadMore = document.getElementById('btn-load-more');
+const $btnSidebarClose = document.getElementById('sidebar-close');
 
-const autocomplete = new AutocompleteWidget(autocompleteContainer);
+const autocomplete = new AutocompleteWidget($autocompleteContainer);
 
 let editors = []; // [{date, view, section}]
 let saveTimers = {};
@@ -131,19 +135,15 @@ const loadedDates = new Set();
 const AUTO_LOAD_TOP_THRESHOLD_PX = 48;
 
 function setLoadMoreButtonState() {
-  if (!loadMoreBtn) {
-    return;
-  }
-
   const chunkLabel = loadMoreDays === 1 ? 'Day' : 'Days';
   if (isLoadingOlderDays) {
-    loadMoreBtn.textContent = 'Loading...';
-    loadMoreBtn.disabled = true;
+    $btnLoadMore.textContent = 'Loading...';
+    $btnLoadMore.disabled = true;
     return;
   }
 
-  loadMoreBtn.textContent = `Load ${loadMoreDays} More ${chunkLabel}`;
-  loadMoreBtn.disabled = !hasMoreOlderDays;
+  $btnLoadMore.textContent = `Load ${loadMoreDays} More ${chunkLabel}`;
+  $btnLoadMore.disabled = !hasMoreOlderDays;
 }
 
 function refreshSearchRegistration() {
@@ -159,7 +159,7 @@ function focusEditorAtIndex(index) {
   activeEditorIndex = index;
   editor.section.scrollIntoView({ behavior: 'smooth', block: 'center' });
   editor.view.focus();
-  statusFile.textContent = editor.date + '.txt';
+  $statusFile.textContent = editor.date + '.txt';
   return true;
 }
 
@@ -189,7 +189,7 @@ function clearEditors() {
   editors = [];
   loadedDates.clear();
   activeEditorIndex = 0;
-  editorContainer.innerHTML = '';
+  $editorContainer.innerHTML = '';
   refreshSearchRegistration();
 }
 
@@ -248,8 +248,8 @@ function requestPriorDays() {
 function updateTime() {
   const { time, date } = getNow();
   const display = `${time} ${date}`;
-  if (currentTimeEl) currentTimeEl.textContent = display;
-  if (statusTime) statusTime.textContent = display;
+  if ($currentTime) $currentTime.textContent = display;
+  if ($statusTime) $statusTime.textContent = display;
 }
 setInterval(updateTime, 1000);
 updateTime();
@@ -314,25 +314,25 @@ async function insertDayEditor(date, options = {}) {
     content = '';
   }
 
-  const section = document.createElement('div');
-  section.className = 'day-section';
+  const $section = document.createElement('div');
+  $section.className = 'day-section';
 
-  const header = document.createElement('div');
-  header.className = 'day-header';
-  header.textContent = date + (date === todayDate() ? ' (today)' : '');
-  section.appendChild(header);
+  const $header = document.createElement('div');
+  $header.className = 'day-header';
+  $header.textContent = date + (date === todayDate() ? ' (today)' : '');
+  $section.appendChild($header);
 
-  const editorDiv = document.createElement('div');
-  section.appendChild(editorDiv);
+  const $editorDiv = document.createElement('div');
+  $section.appendChild($editorDiv);
 
   if (prepend) {
-    editorContainer.insertBefore(section, editorContainer.firstChild);
+    $editorContainer.insertBefore($section, $editorContainer.firstChild);
   } else {
-    editorContainer.appendChild(section);
+    $editorContainer.appendChild($section);
   }
 
-  const view = createEditor(editorDiv, content, date, date === todayDate());
-  const editorRecord = { date, view, section };
+  const view = createEditor($editorDiv, content, date, date === todayDate());
+  const editorRecord = { date, view, section: $section };
 
   if (prepend) {
     editors.unshift(editorRecord);
@@ -370,8 +370,8 @@ async function loadOlderDays() {
       return;
     }
 
-    const oldScrollTop = editorContainer.scrollTop;
-    const oldScrollHeight = editorContainer.scrollHeight;
+    const oldScrollTop = $editorContainer.scrollTop;
+    const oldScrollHeight = $editorContainer.scrollHeight;
 
     let insertedCount = 0;
     const datesToInsert = [...olderDates].reverse();
@@ -389,8 +389,8 @@ async function loadOlderDays() {
 
     refreshSearchRegistration();
 
-    const newScrollHeight = editorContainer.scrollHeight;
-    editorContainer.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight);
+    const newScrollHeight = $editorContainer.scrollHeight;
+    $editorContainer.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight);
   } finally {
     isLoadingOlderDays = false;
     setLoadMoreButtonState();
@@ -512,7 +512,7 @@ function createEditor(container, content, date, isToday) {
         if (update.focusChanged && update.view.hasFocus) {
           activeEditorIndex = editors.findIndex(e => e.view === update.view);
           if (activeEditorIndex >= 0) {
-            statusFile.textContent = editors[activeEditorIndex].date + '.txt';
+            $statusFile.textContent = editors[activeEditorIndex].date + '.txt';
           }
         }
         if (update.docChanged) {
@@ -582,7 +582,7 @@ function insertTimestamp(view, date) {
 
 function insertEndDay(view, date) {
   const { time, date: nowDate } = getNow();
-  const ts = `${time} ${nowDate}\tdone\n---------------------\n`;
+  const ts = `${time} ${nowDate}\tdone\n`; // now that each day is a separate editor/file, don't need the visual separator line `---------------------\n`
   const sel = view.state.selection.main;
   const line = view.state.doc.lineAt(sel.head);
   const insertPos = line.to;
@@ -681,60 +681,60 @@ async function handleCtrlClick(event, view) {
 
   if (!found) return;
 
-  const sidebar = document.getElementById('sidebar');
-  const sidebarTitle = document.getElementById('sidebar-title');
-  const sidebarContent = document.getElementById('sidebar-content');
+  const $sidebar = document.getElementById('sidebar');
+  const $sidebarTitle = document.getElementById('sidebar-title');
+  const $sidebarContent = document.getElementById('sidebar-content');
 
-  sidebarTitle.textContent = found;
-  sidebarContent.innerHTML = 'Loading...';
-  sidebar.classList.remove('hidden');
+  $sidebarTitle.textContent = found;
+  $sidebarContent.innerHTML = 'Loading...';
+  $sidebar.classList.remove('hidden');
 
-  sidebarContent.innerHTML = `<div class="sidebar-link"><div class="link-context">Ctrl+click detected: ${found}</div><div class="link-date">Use analysis (F1) to see all references</div></div>`;
+  $sidebarContent.innerHTML = `<div class="sidebar-link"><div class="link-context">Ctrl+click detected: ${found}</div><div class="link-date">Use analysis (F1) to see all references</div></div>`;
 }
 
 // ─── Analysis ─────────────────────────────────────────────────────────────────
 
 function showAnalysis() {
-  const template = document.getElementById('analysis-modal-template');
-  const content = template?.content?.cloneNode(true);
-  if (!content) return;
+  const $template = document.getElementById('analysis-modal-template');
+  const $content = $template?.content?.cloneNode(true);
+  if (!$content) return;
 
-  const rangeRadios = content.querySelectorAll('input[name="analysis-range"]');
-  const formatRadios = content.querySelectorAll('input[name="analysis-format"]');
-  const customRange = content.querySelector('#custom-range');
-  const rangeStartInput = content.querySelector('#range-start');
-  const rangeEndInput = content.querySelector('#range-end');
-  const analysisOutput = content.querySelector('#analysis-output');
-  if (!customRange || !rangeStartInput || !rangeEndInput || !analysisOutput || rangeRadios.length === 0 || formatRadios.length === 0) return;
+  const $rangeRadios = $content.querySelectorAll('input[name="analysis-range"]');
+  const $formatRadios = $content.querySelectorAll('input[name="analysis-format"]');
+  const $customRange = $content.querySelector('#custom-range');
+  const $rangeStartInput = $content.querySelector('#range-start');
+  const $rangeEndInput = $content.querySelector('#range-end');
+  const $analysisOutput = $content.querySelector('#analysis-output');
+  if (!$customRange || !$rangeStartInput || !$rangeEndInput || !$analysisOutput || $rangeRadios.length === 0 || $formatRadios.length === 0) return;
 
-  analysisOutput.addEventListener('dblclick', (event) => {
+  $analysisOutput.addEventListener('dblclick', (event) => {
     event.preventDefault();
     const selection = window.getSelection();
     if (!selection) return;
     const range = document.createRange();
-    range.selectNodeContents(analysisOutput);
+    range.selectNodeContents($analysisOutput);
     selection.removeAllRanges();
     selection.addRange(range);
   });
 
-  rangeRadios.forEach((radio) => {
+  $rangeRadios.forEach((radio) => {
     radio.addEventListener('change', (event) => {
-      customRange.classList.toggle('hidden', event.target.value !== 'custom');
+      $customRange.classList.toggle('hidden', event.target.value !== 'custom');
     });
   });
 
   openModal({
     titleText: 'Analysis',
-    content,
+    content: $content,
     confirmText: 'Run',
     cancelText: 'Close',
     onConfirm: async () => {
-      const selectedRange = Array.from(rangeRadios).find((radio) => radio.checked);
-      const selectedFormat = Array.from(formatRadios).find((radio) => radio.checked);
-      if (!selectedRange || !selectedFormat) return false;
+      const $selectedRange = Array.from($rangeRadios).find((radio) => radio.checked);
+      const $selectedFormat = Array.from($formatRadios).find((radio) => radio.checked);
+      if (!$selectedRange || !$selectedFormat) return false;
 
-      const range = selectedRange.value;
-      const format = selectedFormat.value;
+      const range = $selectedRange.value;
+      const format = $selectedFormat.value;
       const today = todayDate();
       let startDate;
       let endDate;
@@ -747,22 +747,22 @@ function showAnalysis() {
         startDate = formatDate(d);
         endDate = today;
       } else {
-        startDate = rangeStartInput.value;
-        endDate = rangeEndInput.value;
+        startDate = $rangeStartInput.value;
+        endDate = $rangeEndInput.value;
         if (!startDate || !endDate) {
-          analysisOutput.textContent = 'Please select a date range.';
+          $analysisOutput.textContent = 'Please select a date range.';
           return false;
         }
       }
 
-      analysisOutput.textContent = 'Running analysis...';
+      $analysisOutput.textContent = 'Running analysis...';
       const result = await electronAPI.analyze(startDate, endDate, format);
       if (format === 'html') {
-        analysisOutput.classList.remove('text');
-        analysisOutput.innerHTML = result;
+        $analysisOutput.classList.remove('text');
+        $analysisOutput.innerHTML = result;
       } else {
-        analysisOutput.classList.add('text');
-        analysisOutput.textContent = result;
+        $analysisOutput.classList.add('text');
+        $analysisOutput.textContent = result;
       }
 
       return false;
@@ -772,51 +772,43 @@ function showAnalysis() {
 
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
 
-document.getElementById('btn-timestamp').addEventListener('click', () => {
+$btnTimestamp.addEventListener('click', () => {
   if (editors[activeEditorIndex]) {
     insertTimestamp(editors[activeEditorIndex].view, editors[activeEditorIndex].date);
   }
 });
 
-document.getElementById('btn-endday').addEventListener('click', () => {
+$btnEndDay.addEventListener('click', () => {
   if (editors[activeEditorIndex]) {
     insertEndDay(editors[activeEditorIndex].view, editors[activeEditorIndex].date);
   }
 });
 
-document.getElementById('btn-analysis').addEventListener('click', showAnalysis);
+$btnAnalysis.addEventListener('click', showAnalysis);
 
-if (prevEditorBtn) {
-  prevEditorBtn.addEventListener('click', () => {
-    focusAdjacentEditor(-1);
-  });
-}
+$btnPrevEditor.addEventListener('click', () => {
+  focusAdjacentEditor(-1);
+});
 
-if (nextEditorBtn) {
-  nextEditorBtn.addEventListener('click', () => {
-    focusAdjacentEditor(1);
-  });
-}
+$btnNextEditor.addEventListener('click', () => {
+  focusAdjacentEditor(1);
+});
 
-if (loadMoreBtn) {
-  loadMoreBtn.addEventListener('click', () => {
+$btnLoadMore.addEventListener('click', () => {
+  loadOlderDays().catch(console.error);
+});
+
+$editorContainer.addEventListener('scroll', () => {
+  if (!canAutoLoadOlderDays || !hasMoreOlderDays || isLoadingOlderDays) {
+    return;
+  }
+
+  if ($editorContainer.scrollTop <= AUTO_LOAD_TOP_THRESHOLD_PX) {
     loadOlderDays().catch(console.error);
-  });
-}
+  }
+});
 
-if (editorContainer) {
-  editorContainer.addEventListener('scroll', () => {
-    if (!canAutoLoadOlderDays || !hasMoreOlderDays || isLoadingOlderDays) {
-      return;
-    }
-
-    if (editorContainer.scrollTop <= AUTO_LOAD_TOP_THRESHOLD_PX) {
-      loadOlderDays().catch(console.error);
-    }
-  });
-}
-
-document.getElementById('sidebar-close').addEventListener('click', () => {
+$btnSidebarClose.addEventListener('click', () => {
   document.getElementById('sidebar').classList.add('hidden');
 });
 
@@ -837,7 +829,7 @@ if (electronAPI.onCreateNotebookRequested) {
   if (electronAPI.onViewDaySourceRequested) {
     electronAPI.onViewDaySourceRequested(async () => {
       const editor = editors[activeEditorIndex];
-      if (editor) {s
+      if (editor) {
         await electronAPI.openFileNatively(editor.date);
       }
     });
