@@ -21,9 +21,9 @@ export function openLLMSearch(initialScope = 'loaded') {
   // Check LLM health first
   window.electron.llmChat.checkLLMHealth().then((health) => {
     if (!health.available) {
-      showLLMSetupGuidance(health.error, health.setupGuide);
+      showSetup(health.error, health.setupGuide);
     } else {
-      showLLMSearchModal(initialScope);
+      showSearch(initialScope);
     }
   });
 }
@@ -31,7 +31,7 @@ export function openLLMSearch(initialScope = 'loaded') {
 /**
  * Show setup/configuration guidance when LLM is unavailable.
  */
-function showLLMSetupGuidance(error, setupGuide) {
+function showSetup(error, setupGuide) {
   sidebarSession = openSidebar({
     titleText: 'LLM Search \u2013 Setup Required',
     extraClass: 'llm-search-sidebar',
@@ -62,7 +62,7 @@ function showLLMSetupGuidance(error, setupGuide) {
       const btnDiv = document.createElement('div');
       btnDiv.className = 'actions single';
       const closeBtn = document.createElement('button');
-      closeBtn.className = 'btn secondary';
+      closeBtn.className = 'secondary';
       closeBtn.textContent = 'Close';
       closeBtn.onclick = () => closeSidebar();
       btnDiv.appendChild(closeBtn);
@@ -74,7 +74,7 @@ function showLLMSetupGuidance(error, setupGuide) {
 /**
  * Show the main LLM search modal with UI for scope, query, and response.
  */
-function showLLMSearchModal(initialScope) {
+function showSearch(initialScope) {
   sidebarSession = openSidebar({
     titleText: 'Notebook Search',
     extraClass: 'llm-search-sidebar',
@@ -165,16 +165,23 @@ function showLLMSearchModal(initialScope) {
 
       const searchBtn = document.createElement('button');
       searchBtn.textContent = 'Search';
-      searchBtn.className = 'btn primary';
+      searchBtn.className = 'primary';
       searchBtn.onclick = () => performLLMSearch(input, scopeSelect, responseDiv, citationsList, followupDiv);
+      input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            searchBtn.click();
+          }
+      });
 
       const closeBtn = document.createElement('button');
       closeBtn.textContent = 'Close';
-      closeBtn.className = 'btn secondary';
+      closeBtn.className = 'secondary';
       closeBtn.onclick = () => closeSidebar();
 
-      btnDiv.appendChild(searchBtn);
+	  // primary on right
       btnDiv.appendChild(closeBtn);
+      btnDiv.appendChild(searchBtn);
       body.appendChild(btnDiv);
 
       // Focus input

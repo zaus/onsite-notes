@@ -250,34 +250,6 @@ body {
     }
   }
 
-  .modal-actions {
-    margin-top: var(--space-16);
-    padding: var(--space-16);
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--space-8);
-
-    button {
-      background: var(--color-bg-control);
-      color: var(--color-text-main);
-      border: var(--border-width-1) solid var(--color-border-control);
-      padding: var(--space-6) var(--space-12);
-      cursor: pointer;
-      border-radius: var(--radius-3);
-
-      &:hover {
-        opacity: 0.8;
-      }
-
-      &.primary, &.confirm, &[data-confirm] {
-        background: var(--color-bg-accent);
-        border-color: var(--color-bg-accent);
-        color: var(--color-text-on-accent);
-      }
-
-    }
-  }
-
   .modal-validation {
     color: var(--color-validation);
     font-size: var(--font-size-12);
@@ -288,6 +260,38 @@ body {
     }
   }
 
+  .actions { padding: var(--space-12); }
+}
+
+/* shared with sidebar and modal */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-8);
+
+  margin-top: var(--space-12);
+  border-top: var(--border-width-1) solid var(--color-border-main);
+  padding-top: var(--space-12);
+
+  button {
+    background: var(--color-bg-control);
+    color: var(--color-text-main);
+    border: var(--border-width-1) solid var(--color-border-control);
+    padding: var(--space-6) var(--space-12);
+    cursor: pointer;
+    border-radius: var(--radius-3);
+
+    &:hover {
+      opacity: 0.8;
+    }
+
+    &.primary, &.confirm, &[data-confirm] {
+      background: var(--color-bg-accent);
+      border-color: var(--color-bg-accent);
+      color: var(--color-text-on-accent);
+    }
+
+  }
 }
 
 .prompt-modal-content input {
