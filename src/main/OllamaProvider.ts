@@ -70,9 +70,9 @@ export class OllamaProvider extends LLMProvider {
 	): AsyncIterable<string> {
 		try {
 			// Build system prompt with context
-			const systemContent = context
-				? `You are a helpful assistant analyzing notebook entries. Consider the following retrieved context:\n\n${context}\n\nBased on this context, answer the user's question concisely.`
-				: 'You are a helpful assistant analyzing notebook entries. Keep responses concise and relevant.';
+			const systemContent = 'You are a helpful assistant answering questions about local notebook entries.  Keep responses concise and relevant.' + (context
+				? `Only use retrieved context, not general knowledge, to answer questions:\n\n${context}`
+				: 'No additional context provided; answer based on your general knowledge.');
 
 			const messagesPayload = [
 				{ role: 'system' as const, content: systemContent },

@@ -20,7 +20,8 @@ module.exports = (env, argv) => {
         new CopyPlugin({
           patterns: [
             { from: 'src/renderer/index.html', to: 'index.html' },
-            { from: 'src/renderer/style.css', to: 'style.css' }
+            { from: 'src/renderer/style.css', to: 'style.css' },
+            { from: 'src/renderer/llmSearch.css', to: 'llmSearch.css' }
           ]
         })
       ],
