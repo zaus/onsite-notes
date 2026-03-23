@@ -127,14 +127,6 @@ const $btnSidebarClose = document.getElementById('sidebar-close');
 
 const autocomplete = new AutocompleteWidget($autocompleteContainer);
 
-// default settings
-let priorDays = 3;
-let loadMoreDays = 3;
-let llmProvider = 'ollama';
-let llmBaseUrl = 'http://localhost:11434';
-let llmModel = 'llama3.2';
-let llmSearchScope = 'loaded';
-
 // state
 let editors = []; // [{date, view, section}]
 let saveTimers = {};
@@ -146,7 +138,7 @@ let canAutoLoadOlderDays = false;
 const loadedDates = new Set();
 const AUTO_LOAD_TOP_THRESHOLD_PX = 48;
 
-function setLoadMoreButtonState() {
+function setLoadMoreButtonState(loadMoreDays) {
   const chunkLabel = loadMoreDays === 1 ? 'Day' : 'Days';
   if (isLoadingOlderDays) {
     $btnLoadMore.textContent = 'Loading...';
@@ -240,13 +232,15 @@ function requestNotebookName() {
   });
 }
 
-function requestAppSettingValue(settingKey) {
+async function requestAppSettingValue(settingKey) {
+  const config = await electronAPI.getConfig();
+
   if (settingKey === 'loadMoreDays') {
     return showPromptModal({
       titleText: 'Load More Days',
       labelText: 'Days to load per request',
       placeholder: '3',
-      initialValue: String(loadMoreDays),
+      initialValue: String(config.loadMoreDays),
       confirmText: 'Save',
       validate: (value) => toPositiveInt(value) !== null || 'Enter a positive whole number.'
     });
@@ -257,7 +251,7 @@ function requestAppSettingValue(settingKey) {
       titleText: 'Initial Prior Days',
       labelText: 'Days to load on startup',
       placeholder: '3',
-      initialValue: String(priorDays),
+      initialValue: String(config.priorDays),
       confirmText: 'Save',
       validate: (value) => toPositiveInt(value) !== null || 'Enter a positive whole number.'
     });
@@ -268,7 +262,7 @@ function requestAppSettingValue(settingKey) {
       titleText: 'LLM Provider',
       labelText: 'Provider name',
       placeholder: 'ollama',
-      initialValue: llmProvider,
+      initialValue: String(config.llmProvider),
       confirmText: 'Save',
       validate: (value) => value.trim().toLowerCase() === 'ollama' || 'Only "ollama" is currently supported.'
     });
@@ -279,7 +273,7 @@ function requestAppSettingValue(settingKey) {
       titleText: 'LLM Base URL',
       labelText: 'Base URL for the LLM service',
       placeholder: 'http://localhost:11434',
-      initialValue: llmBaseUrl,
+      initialValue: String(config.llmBaseUrl),
       confirmText: 'Save',
       validate: (value) => value.trim().length > 0 || 'Base URL is required.'
     });
@@ -290,7 +284,7 @@ function requestAppSettingValue(settingKey) {
       titleText: 'LLM Model',
       labelText: 'Model name',
       placeholder: 'llama3.2',
-      initialValue: llmModel,
+      initialValue: String(config.llmModel),
       confirmText: 'Save',
       validate: (value) => value.trim().length > 0 || 'Model is required.'
     });
@@ -301,7 +295,7 @@ function requestAppSettingValue(settingKey) {
       titleText: 'LLM Search Scope',
       labelText: 'Default scope (loaded or full)',
       placeholder: 'loaded',
-      initialValue: llmSearchScope,
+      initialValue: String(config.llmSearchScope),
       confirmText: 'Save',
       validate: (value) => {
         const normalized = value.trim().toLowerCase();
@@ -311,55 +305,6 @@ function requestAppSettingValue(settingKey) {
   }
 
   return null;
-}
-
-function normalizeAppSettingValue(settingKey, enteredValue) {
-  if (settingKey === 'priorDays' || settingKey === 'loadMoreDays') {
-    return toPositiveInt(enteredValue);
-  }
-
-  if (settingKey === 'llmSearchScope') {
-    const normalized = enteredValue.trim().toLowerCase();
-    if (normalized !== 'loaded' && normalized !== 'full') {
-      return null;
-    }
-    return normalized;
-  }
-
-  const trimmed = enteredValue.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-function applyAppSettingLocally(settingKey, value) {
-  if (settingKey === 'loadMoreDays') {
-    loadMoreDays = toPositiveInt(value) ?? loadMoreDays;
-    setLoadMoreButtonState();
-    return;
-  }
-
-  if (settingKey === 'priorDays') {
-    priorDays = toPositiveInt(value) ?? priorDays;
-    return;
-  }
-
-  if (settingKey === 'llmProvider' && typeof value === 'string') {
-    llmProvider = value;
-    return;
-  }
-
-  if (settingKey === 'llmBaseUrl' && typeof value === 'string') {
-    llmBaseUrl = value;
-    return;
-  }
-
-  if (settingKey === 'llmModel' && typeof value === 'string') {
-    llmModel = value;
-    return;
-  }
-
-  if (settingKey === 'llmSearchScope') {
-    llmSearchScope = value === 'full' ? 'full' : 'loaded';
-  }
 }
 
 function updateTime() {
@@ -373,28 +318,16 @@ updateTime();
 
 async function loadEditors() {
   const config = await electronAPI.getConfig();
-  priorDays = toPositiveInt(config.priorDays) ?? 3;
-  loadMoreDays = toPositiveInt(config.loadMoreDays) ?? priorDays;
-  llmProvider = typeof config.llmProvider === 'string' && config.llmProvider.trim().length > 0
-    ? config.llmProvider.trim()
-    : llmProvider;
-  llmBaseUrl = typeof config.llmBaseUrl === 'string' && config.llmBaseUrl.trim().length > 0
-    ? config.llmBaseUrl.trim()
-    : llmBaseUrl;
-  llmModel = typeof config.llmModel === 'string' && config.llmModel.trim().length > 0
-    ? config.llmModel.trim()
-    : llmModel;
-  llmSearchScope = config.llmSearchScope === 'full' ? 'full' : 'loaded';
   currentNotebook = config.currentNotebook || currentNotebook;
   hasMoreOlderDays = true;
   isLoadingOlderDays = false;
   canAutoLoadOlderDays = false;
-  setLoadMoreButtonState();
+  setLoadMoreButtonState(config.loadMoreDays);
 
   const today = todayDate();
 
   const dates = [];
-  for (let i = priorDays; i >= 0; i--) {
+  for (let i = config.priorDays; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const yyyy = d.getFullYear();
@@ -423,7 +356,7 @@ async function loadEditors() {
       last.section.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
     canAutoLoadOlderDays = true;
-    setLoadMoreButtonState();
+    setLoadMoreButtonState(config.loadMoreDays);
   }, 100);
 }
 
@@ -488,10 +421,11 @@ async function loadOlderDays() {
   }
 
   isLoadingOlderDays = true;
-  setLoadMoreButtonState();
+  const config = await electronAPI.getConfig();
+  setLoadMoreButtonState(config.loadMoreDays);
 
   try {
-    const olderDates = await electronAPI.listOlderDates(earliestDate, loadMoreDays);
+    const olderDates = await electronAPI.listOlderDates(earliestDate, config.loadMoreDays);
     if (!olderDates || olderDates.length === 0) {
       hasMoreOlderDays = false;
       return;
@@ -520,8 +454,13 @@ async function loadOlderDays() {
     $editorContainer.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight);
   } finally {
     isLoadingOlderDays = false;
-    setLoadMoreButtonState();
+    setLoadMoreButtonState(config.loadMoreDays);
   }
+}
+
+async function openLLMSearchWithConfiguredScope() {
+  const config = await electronAPI.getConfig();
+  openLLMSearch(config.llmSearchScope);
 }
 
 function createEditor(container, content, date, isToday) {
@@ -546,7 +485,10 @@ function createEditor(container, content, date, isToday) {
   const superSearchKeymap = Prec.highest(keymap.of([
     {
       key: 'Ctrl-Shift-F | F3',
-      run: (view) => { openLLMSearch(llmSearchScope); return true; }
+      run: () => {
+        openLLMSearchWithConfiguredScope().catch(console.error);
+        return true;
+      }
     }
   ]));
 
@@ -923,7 +865,9 @@ $btnEndDay.addEventListener('click', () => {
 
 $btnAnalysis.addEventListener('click', showAnalysis);
 
-$btnSearch.addEventListener('click', () => openLLMSearch(llmSearchScope));
+$btnSearch.addEventListener('click', () => {
+  openLLMSearchWithConfiguredScope().catch(console.error);
+});
 
 $btnPrevEditor.addEventListener('click', () => {
   focusAdjacentEditor(-1);
@@ -983,11 +927,12 @@ if (electronAPI.onCreateNotebookRequested) {
       const enteredValue = await requestAppSettingValue(settingKey);
       if (!enteredValue) return;
 
-      const normalized = normalizeAppSettingValue(settingKey, enteredValue);
-      if (normalized === null || normalized === undefined) return;
+      await electronAPI.setAppSetting(settingKey, enteredValue);
 
-      const result = await electronAPI.setAppSetting(settingKey, normalized);
-      applyAppSettingLocally(result?.key ?? settingKey, result?.value ?? normalized);
+      if (settingKey === 'loadMoreDays') {
+        const config = await electronAPI.getConfig();
+        setLoadMoreButtonState(config.loadMoreDays);
+      }
     });
   }
 }

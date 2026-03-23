@@ -52,7 +52,7 @@ export class AppSettingsStore {
     return this.setAppSetting('loadMoreDays', days);
   }
 
-  getPriorDays(fallback: number): number {
+  getPriorDays(fallback = 3): number {
     return this.resolveIntSetting(process.env.ONSITE_PRIOR_DAYS, this.settings.priorDays, fallback);
   }
 

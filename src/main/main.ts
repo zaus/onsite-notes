@@ -208,8 +208,7 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle('get-config', async () => {
-    const fallbackPriorDays = 3;
-    const priorDays = appSettingsStore.getPriorDays(fallbackPriorDays);
+    const priorDays = appSettingsStore.getPriorDays();
     const loadMoreDays = appSettingsStore.getLoadMoreDays(priorDays);
 
     return {
