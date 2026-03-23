@@ -4,6 +4,7 @@ import * as path from 'path';
 import { Analyzer } from './analyzer';
 import { AppSettingsStore } from './appSettings';
 import type { AppSettingKey, AppSettings } from './appSettings';
+import type { LLMProviderConfig, LLMSession } from './llmProvider';
 import { NotebookManager } from './notebookManager';
 import { createLLMProvider } from './llmProviderFactory';
 import { NotebookRetriever } from './retrievalService';
@@ -142,6 +143,36 @@ app.whenReady().then(async () => {
   await notebookManager.init('default');
   const appSettingsStore = new AppSettingsStore(app.getPath('userData'));
 
+  function getLLMProviderConfig(): LLMProviderConfig {
+    return {
+      provider: appSettingsStore.getLLMProvider(),
+      baseUrl: appSettingsStore.getLLMBaseUrl(),
+      model: appSettingsStore.getLLMModel(),
+    };
+  }
+
+  function isSameProviderConfig(a: LLMProviderConfig, b: LLMProviderConfig): boolean {
+    return a.provider === b.provider && a.baseUrl === b.baseUrl && a.model === b.model;
+  }
+
+  async function syncSessionWithSettings(session: LLMSession): Promise<void> {
+    const latestProviderConfig = getLLMProviderConfig();
+    if (!isSameProviderConfig(session.providerConfig, latestProviderConfig)) {
+      session.provider = createLLMProvider(latestProviderConfig);
+      session.providerConfig = latestProviderConfig;
+    }
+
+    const latestScope = appSettingsStore.getLLMSearchScope();
+    if (session.scope !== latestScope) {
+      const notebookPath = await notebookManager.getCurrentNotebookPath();
+      const retriever = new NotebookRetriever(notebookPath);
+      const loadedFiles = await notebookManager.listFiles();
+      session.retrieved = await retriever.loadNotebook(latestScope, loadedFiles);
+      session.scope = latestScope;
+      session.context = '';
+    }
+  }
+
   ipcMain.handle('read-file', async (_event: IpcMainInvokeEvent, date: string) => {
     return notebookManager.readFile(date);
   });
@@ -225,12 +256,7 @@ app.whenReady().then(async () => {
   });
 
   // LLM Chat Session Management
-  const llmSessions = new Map<string, {
-    context: string;
-    provider: any;
-    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
-    retrieved: any[];
-  }>();
+  const llmSessions = new Map<string, LLMSession>();
 
   function generateSessionId(): string {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -238,11 +264,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('llm:health-check', async () => {
     try {
-      const provider = createLLMProvider({
-        provider: appSettingsStore.getLLMProvider(),
-        baseUrl: appSettingsStore.getLLMBaseUrl(),
-        model: appSettingsStore.getLLMModel(),
-      });
+      const provider = createLLMProvider(getLLMProviderConfig());
       return await provider.checkHealth();
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
@@ -261,11 +283,8 @@ app.whenReady().then(async () => {
       : appSettingsStore.getLLMSearchScope();
     
     try {
-      const provider = createLLMProvider({
-        provider: appSettingsStore.getLLMProvider(),
-        baseUrl: appSettingsStore.getLLMBaseUrl(),
-        model: appSettingsStore.getLLMModel(),
-      });
+      const providerConfig = getLLMProviderConfig();
+      const provider = createLLMProvider(providerConfig);
 
       // Load notebook files for retrieval
       const notebookPath = await notebookManager.getCurrentNotebookPath();
@@ -276,6 +295,8 @@ app.whenReady().then(async () => {
       llmSessions.set(sessionId, {
         context: '',
         provider,
+        providerConfig,
+        scope: resolvedScope,
         messages: [],
         retrieved: documents,
       });
@@ -298,11 +319,13 @@ app.whenReady().then(async () => {
     }
 
     try {
+      await syncSessionWithSettings(session);
+
       // Add user message to history
       session.messages.push({ role: 'user', content: userMessage });
 
-      // Perform retrieval on the first message
-      if (session.messages.length === 1) {
+      // Perform retrieval when context is missing (new session or scope changed)
+      if (!session.context) {
         const notebookPath = await notebookManager.getCurrentNotebookPath();
         const retriever = new NotebookRetriever(notebookPath);
         const chunks = retriever.rankAndChunk(userMessage, session.retrieved, 5);

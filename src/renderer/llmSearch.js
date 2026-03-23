@@ -41,6 +41,7 @@ function showLLMSetupGuidance(error, setupGuide) {
       <li>Start the service: <code>ollama serve</code></li>
       <li>Retry this search</li>
     </ol>
+    <p style="margin-top: 8px;">Model/provider changes apply on your next message in the current chat session.</p>
     <p style="margin-top: 12px; font-size: 11px; color: #999;">
       Search defaults to simple keyword matching until backend is available.
     </p>
@@ -101,6 +102,11 @@ function showLLMSearchModal(initialScope) {
     'width: 100%; padding: 8px; font-size: 12px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box;';
   inputDiv.appendChild(input);
   modal.appendChild(inputDiv);
+
+  const settingsNote = document.createElement('div');
+  settingsNote.style.cssText = 'margin-bottom: 12px; font-size: 11px; color: #666;';
+  settingsNote.textContent = 'Model/provider setting changes apply on your next message in this chat.';
+  modal.appendChild(settingsNote);
 
   // Response area
   const responseDiv = document.createElement('div');

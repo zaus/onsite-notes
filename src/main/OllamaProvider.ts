@@ -92,6 +92,19 @@ export class OllamaProvider extends LLMProvider {
 			if (!response.ok) {
 				const errorText = await response.text();
 				
+				// check for common failures and provide more helpful error messages
+
+				if (response.status === 404 && errorText.includes('model')) {
+					const tagsResponse = await fetch(`${this.baseUrl}/api/tags`);
+					if (tagsResponse.ok) {
+						const tagsData = await tagsResponse.json() as { models?: Array<{ name: string }> };
+						const availableModels = tagsData?.models?.map(m => m.name).join(', ') || 'none';
+						throw new Error(
+							`Ollama returned ${response.status}: Model "${this.model}" not found. Available models: ${availableModels}`
+						);
+					}
+				}
+				
 				throw new Error(
 					`Ollama returned ${response.status}: ${response.statusText}. ${errorText}`
 				);

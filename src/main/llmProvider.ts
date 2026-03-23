@@ -3,9 +3,26 @@
  * Currently supports Ollama-compatible providers.
  */
 
+import type { RetrievalDocument } from './retrievalService';
+
 export interface LLMMessage {
   role: 'user' | 'assistant';
   content: string;
+}
+
+export interface LLMProviderConfig {
+  provider: string;
+  baseUrl: string;
+  model: string;
+}
+
+export interface LLMSession {
+  context: string;
+  provider: LLMProvider;
+  providerConfig: LLMProviderConfig;
+  scope: 'loaded' | 'full';
+  messages: LLMMessage[];
+  retrieved: RetrievalDocument[];
 }
 
 /**
