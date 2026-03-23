@@ -291,6 +291,17 @@ body {
       color: var(--color-text-on-accent);
     }
 
+    &.icon {
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-4);
+
+      .icon-symbol {
+        line-height: 1;
+      }
+    }
+
   }
 }
 

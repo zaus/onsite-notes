@@ -83,109 +83,76 @@ function showSearch(initialScope) {
       sidebarSession = null;
     },
     onOpen: ({ body }) => {
+      body.classList.add('llm-search-content');
+
       // Scope selector
-      const scopeDiv = document.createElement('div');
-      scopeDiv.className = 'scope';
+      const $scope = document.createElement('div');
+      $scope.className = 'scope';
 
-      const scopeLabel = document.createElement('label');
-      scopeLabel.className = 'label inline';
-      scopeLabel.textContent = 'Search:';
+      const $label = document.createElement('label');
+      $label.className = 'label inline';
+      $label.textContent = 'Search:';
 
-      const scopeSelect = document.createElement('select');
-      scopeSelect.className = 'select';
-      scopeSelect.innerHTML = `
+      const $select = document.createElement('select');
+      $select.className = 'select';
+      $select.innerHTML = `
         <option value="loaded">Currently loaded days</option>
         <option value="full">All notebook history</option>
       `;
-      scopeSelect.value = initialScope === 'full' ? 'full' : 'loaded';
+      $select.value = initialScope === 'full' ? 'full' : 'loaded';
 
-      scopeDiv.appendChild(scopeLabel);
-      scopeDiv.appendChild(scopeSelect);
-      body.appendChild(scopeDiv);
-
-      // Query input
-      const inputDiv = document.createElement('div');
-      inputDiv.className = 'input-group';
-
-      const inputLabel = document.createElement('label');
-      inputLabel.className = 'label';
-      inputLabel.textContent = 'Your question:';
-      inputDiv.appendChild(inputLabel);
-
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = 'Ask something about your notes...';
-      input.className = 'input';
-      inputDiv.appendChild(input);
-      body.appendChild(inputDiv);
+      $scope.appendChild($label);
+      $scope.appendChild($select);
+      body.appendChild($scope);
 
       // Response area
-      const responseDiv = document.createElement('div');
-      responseDiv.className = 'response';
-      responseDiv.id = 'llm-response';
-      responseDiv.textContent = 'Response will appear here...';
-      body.appendChild(responseDiv);
+      const $response = document.createElement('div');
+      $response.className = 'response';
+      $response.id = 'llm-response';
+      body.appendChild($response);
 
-      // Citations
-      const citationsDiv = document.createElement('div');
-      citationsDiv.className = 'citations';
+      // Chat actions/composer (bottom)
+      const $actions = document.createElement('div');
+      $actions.className = 'actions';
 
-      const citationsLabel = document.createElement('div');
-      citationsLabel.className = 'citations-label';
-      citationsLabel.textContent = 'Sources:';
-      citationsDiv.appendChild(citationsLabel);
+      const $input = document.createElement('input');
+      $input.type = 'text';
+      $input.placeholder = 'Ask something about your notes...';
+      $input.className = 'input';
+      $actions.appendChild($input);
 
-      const citationsList = document.createElement('div');
-      citationsList.id = 'llm-citations';
-      citationsList.className = 'citations-list';
-      citationsDiv.appendChild(citationsList);
-      body.appendChild(citationsDiv);
+      const runSearch = () => {
+        performLLMSearch($input, $select, $response);
+      };
 
-      // Follow-up input (hidden initially)
-      const followupDiv = document.createElement('div');
-      followupDiv.className = 'followup';
-      followupDiv.id = 'llm-followup';
+      const $btnSearch = document.createElement('button');
+      $btnSearch.className = 'primary icon';
 
-      const followupLabel = document.createElement('label');
-      followupLabel.className = 'label';
-      followupLabel.textContent = 'Follow-up question:';
-      followupDiv.appendChild(followupLabel);
+      const $iconSearch = document.createElement('span');
+      $iconSearch.className = 'icon-symbol';
+      $iconSearch.textContent = '🔎';
 
-      const followupInput = document.createElement('input');
-      followupInput.type = 'text';
-      followupInput.placeholder = 'Ask a follow-up question...';
-      followupInput.className = 'input';
-      followupDiv.appendChild(followupInput);
+    // don't need actual text, use aria-label instead
+      // const searchLabel = document.createElement('span');
+      // searchLabel.textContent = 'Search';
 
-      body.appendChild(followupDiv);
-
-      // Buttons
-      const btnDiv = document.createElement('div');
-      btnDiv.className = 'actions';
-
-      const searchBtn = document.createElement('button');
-      searchBtn.textContent = 'Search';
-      searchBtn.className = 'primary';
-      searchBtn.onclick = () => performLLMSearch(input, scopeSelect, responseDiv, citationsList, followupDiv);
-      input.addEventListener('keydown', (e) => {
+      $btnSearch.appendChild($iconSearch);
+      // searchBtn.appendChild(searchLabel);
+      $btnSearch.title = 'Search notes';
+      $btnSearch.setAttribute('aria-label', 'Search notes');
+      $btnSearch.onclick = runSearch;
+      $input.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
-            searchBtn.click();
+            runSearch();
           }
       });
 
-      const closeBtn = document.createElement('button');
-      closeBtn.textContent = 'Close';
-      closeBtn.className = 'secondary';
-      closeBtn.onclick = () => closeSidebar();
-
-	  // primary on right
-      btnDiv.appendChild(closeBtn);
-      btnDiv.appendChild(searchBtn);
-      body.appendChild(btnDiv);
+      $actions.appendChild($btnSearch);
+      body.appendChild($actions);
 
       // Focus input
-      input.focus();
+      $input.focus();
     },
   });
 }
@@ -194,39 +161,70 @@ function showSearch(initialScope) {
  * Perform LLM search and stream response.
  */
 async function performLLMSearch(
-  queryInput,
-  scopeSelect,
-  responseDiv,
-  citationsList,
-  followupDiv
+  $queryInput,
+  $scopeSelect,
+  $responses
 ) {
-  const query = queryInput.value.trim();
+  const query = $queryInput.value.trim();
   if (!query) return;
 
-  responseDiv.textContent = 'Thinking...';
-  responseDiv.classList.remove('is-error');
-  citationsList.innerHTML = '';
+  $responses.classList.remove('is-error');
+
+  const $turn = document.createElement('div');
+  $turn.className = 'llm-turn';
+
+  const $question = document.createElement('div');
+  $question.className = 'llm-turn-question';
+  $question.textContent = `You: ${query}`;
+
+  const $answer = document.createElement('div');
+  $answer.className = 'llm-turn-answer';
+  $answer.textContent = 'Thinking...';
+
+  const $citations = document.createElement('div');
+  $citations.className = 'citations hidden';
+
+  const $citationsLabel = document.createElement('div');
+  $citationsLabel.className = 'citations-label';
+  $citationsLabel.textContent = 'Sources:';
+  $citations.appendChild($citationsLabel);
+
+  const $citationsList = document.createElement('div');
+  $citationsList.className = 'citations-list';
+  $citations.appendChild($citationsList);
+
+  $turn.appendChild($question);
+  $turn.appendChild($answer);
+  $turn.appendChild($citations);
+  $responses.appendChild($turn);
+  $responses.scrollTop = $responses.scrollHeight;
 
   try {
     // Start session
     if (!llmSearchSession) {
       const sessionResp = await window.electron.llmChat.startSession(
-        scopeSelect.value
+        $scopeSelect.value
       );
       llmSearchSession = sessionResp.sessionId;
     }
 
     // Stream response via push events (async iterables can't cross Electron IPC)
-    responseDiv.textContent = '';
+    $answer.textContent = '';
 
     await new Promise((resolve, reject) => {
       const removeListener = window.electron.llmChat.onChunk((sessionId, chunk) => {
         if (sessionId !== llmSearchSession) return;
 
         if (chunk.type === 'token') {
-          responseDiv.textContent += chunk.content;
+          $answer.textContent += chunk.content;
+          $responses.scrollTop = $responses.scrollHeight;
         } else if (chunk.type === 'citations') {
-          renderCitations(citationsList, chunk.citations || []);
+          const citations = chunk.citations || [];
+          renderCitations($citationsList, citations);
+          if (citations.length > 0) {
+            $citations.classList.remove('hidden');
+          }
+          $responses.scrollTop = $responses.scrollHeight;
         } else if (chunk.type === 'done') {
           removeListener();
           resolve();
@@ -243,41 +241,41 @@ async function performLLMSearch(
       });
     });
 
-    // Show follow-up input
-    followupDiv.classList.add('is-visible');
+    $queryInput.value = '';
+    $queryInput.focus();
   } catch (err) {
-    responseDiv.classList.add('is-error');
-    responseDiv.textContent = `Error: ${err.message}`;
+    $responses.classList.add('is-error');
+    $answer.textContent = `Error: ${err.message}`;
   }
 }
 
 /**
  * Render citations as clickable links.
  */
-function renderCitations(citationsList, citations) {
-  citationsList.innerHTML = '';
+function renderCitations($citationList, citations) {
+  $citationList.innerHTML = '';
   for (const cite of citations) {
-    const citeElem = document.createElement('div');
-    citeElem.className = 'citation';
+    const $cite = document.createElement('div');
+    $cite.className = 'citation';
 
-    const dateSpan = document.createElement('strong');
-    dateSpan.textContent = cite.date;
+    const $date = document.createElement('strong');
+    $date.textContent = cite.date;
 
-    const snippetSpan = document.createElement('span');
-    snippetSpan.className = 'snippet';
-    snippetSpan.textContent = cite.snippet.substring(0, 100) + '...';
+    const $snippet = document.createElement('span');
+    $snippet.className = 'snippet';
+    $snippet.textContent = cite.snippet.substring(0, 100) + '...';
 
-    citeElem.appendChild(dateSpan);
-    citeElem.appendChild(snippetSpan);
+    $cite.appendChild($date);
+    $cite.appendChild($snippet);
 
     // Click to focus that day's editor
-    citeElem.onclick = () => {
+    $cite.onclick = () => {
       if (window.focusDayEditor) {
         window.focusDayEditor(cite.date);
       }
     };
 
-    citationsList.appendChild(citeElem);
+    $citationList.appendChild($cite);
   }
 }
 
