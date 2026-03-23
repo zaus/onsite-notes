@@ -187,50 +187,6 @@ body {
 .cm-tok-todo-doing { color: var(--color-token-todo-active); }
 .cm-tok-timestamp { color: var(--color-text-muted); }
 
-#sidebar {
-  width: var(--size-sidebar-width);
-  background: var(--color-bg-panel);
-  border-left: var(--border-width-1) solid var(--color-border-main);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-#sidebar.hidden { display: none; }
-
-#sidebar-header {
-  display: flex;
-  align-items: center;
-  padding: var(--space-8);
-  border-bottom: var(--border-width-1) solid var(--color-border-main);
-}
-
-#sidebar-title { flex: 1; font-weight: bold; }
-
-#sidebar-close {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-size: var(--font-size-14);
-}
-
-#sidebar-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--space-8);
-}
-
-.sidebar-link {
-  padding: var(--space-6);
-  border-bottom: var(--border-width-1) solid var(--color-border-subtle);
-  cursor: pointer;
-}
-
-.sidebar-link:hover { background: var(--color-bg-surface); }
-.sidebar-link .link-date { color: var(--color-text-muted); font-size: var(--font-size-11); }
-.sidebar-link .link-context { color: var(--color-text-main); font-size: var(--font-size-12); margin-top: var(--space-2); }
-
 #status-bar {
   display: flex;
   justify-content: space-between;

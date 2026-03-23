@@ -1,27 +1,6 @@
-/* LLM Search */
-.llm-search-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(calc(var(--space-unit) * 125), 90vw);
-  max-height: min(calc(var(--space-unit) * 150), 90vh);
-  overflow-y: auto;
-  background: var(--color-bg-panel);
-  border: var(--border-width-1) solid var(--color-border-main);
-  border-radius: var(--radius-4);
-  box-shadow: var(--shadow-dropdown);
-  z-index: 10000;
-  padding: var(--space-16);
-  color: var(--color-text-main);
-  font-family: var(--font-family-mono);
-
-  .title {
-    margin: 0 0 var(--space-16) 0;
-    font-size: var(--font-size-16);
-    font-weight: 600;
-    color: var(--color-text-main);
-  }
+/* LLM Search – content styles, scoped to the consumer extra class.
+   Shell structure (positioning, resize handle, scroll container) lives in sidebarShell.css. */
+.llm-search-sidebar {
 
   .scope {
     margin-bottom: var(--space-12);
@@ -68,7 +47,7 @@
 
   .response {
     margin-bottom: var(--space-12);
-    max-height: calc(var(--space-unit) * 75);
+    flex: 1;
     overflow-y: auto;
     background: var(--color-bg-main);
     border: var(--border-width-1) solid var(--color-border-main);
