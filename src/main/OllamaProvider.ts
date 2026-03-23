@@ -90,11 +90,13 @@ export class OllamaProvider extends LLMProvider {
 			});
 
 			if (!response.ok) {
+				const errorText = await response.text();
+				
 				throw new Error(
-					`Ollama returned ${response.status}: ${response.statusText}`
+					`Ollama returned ${response.status}: ${response.statusText}. ${errorText}`
 				);
 			}
-
+			
 			const reader = response.body?.getReader();
 			if (!reader) {
 				throw new Error('No response body');

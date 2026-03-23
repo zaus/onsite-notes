@@ -863,13 +863,13 @@ if (electronAPI.onCreateNotebookRequested) {
   }
 
   // hm...these feel like they should be consolidated (probably into a single config page instead of separate prompts) or at least don't need separate subhandlers
-  if (electronAPI.onSetLoadMoreRequested) {
-    electronAPI.onSetLoadMoreRequested(async () => {
+  if (electronAPI.onSetLoadMoreDaysRequested) {
+    electronAPI.onSetLoadMoreDaysRequested(async () => {
       const enteredValue = await requestLoadMoreDays();
       if (!enteredValue) return;
 
       const parsed = toPositiveInt(enteredValue) ?? loadMoreDays;
-      const result = await electronAPI.setloadMoreDays(parsed);
+      const result = await electronAPI.setLoadMoreDays(parsed);
       loadMoreDays = toPositiveInt(result?.loadMoreDays) ?? parsed;
       setLoadMoreButtonState();
     });
@@ -883,7 +883,7 @@ if (electronAPI.onCreateNotebookRequested) {
       const parsed = toPositiveInt(enteredValue) ?? priorDays;
       const result = await electronAPI.setPriorDays(parsed);
       priorDays = toPositiveInt(result?.priorDays) ?? parsed;
-      await loadEditors();
+      // await loadEditors(); // originally suggested reloading them, but bad UX / unnecessary
     });
   }
 }

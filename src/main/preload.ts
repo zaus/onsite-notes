@@ -27,8 +27,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onSetLoadMoreDaysRequested: (callback: () => void) => {
     const listener = () => callback();
-    ipcRenderer.on('set-load-more-chunk-requested', listener);
-    return () => ipcRenderer.removeListener('set-load-more-chunk-requested', listener);
+    ipcRenderer.on('set-load-more-days-requested', listener);
+    return () => ipcRenderer.removeListener('set-load-more-days-requested', listener);
   },
   onSetPriorDaysRequested: (callback: () => void) => {
     const listener = () => callback();

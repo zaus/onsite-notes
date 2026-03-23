@@ -93,7 +93,7 @@ function buildAppMenu(win: BrowserWindow): void {
       label: 'Settings',
       submenu: [
         { label: 'Set Prior Days...', click: () => win.webContents.send('set-prior-days-requested') },
-        { label: 'Set Load More Chunk...', click: () => win.webContents.send('set-load-more-chunk-requested') }
+        { label: 'Set Load More Days...', click: () => win.webContents.send('set-load-more-days-requested') }
       ]
     },
     {
