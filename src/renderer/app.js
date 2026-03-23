@@ -127,12 +127,19 @@ const $btnSidebarClose = document.getElementById('sidebar-close');
 
 const autocomplete = new AutocompleteWidget($autocompleteContainer);
 
+// default settings
+let priorDays = 3;
+let loadMoreDays = 3;
+let llmProvider = 'ollama';
+let llmBaseUrl = 'http://localhost:11434';
+let llmModel = 'llama3.2';
+let llmSearchScope = 'loaded';
+
+// state
 let editors = []; // [{date, view, section}]
 let saveTimers = {};
 let activeEditorIndex = 0;
 let currentNotebook = 'default';
-let priorDays = 3;
-let loadMoreDays = 3;
 let hasMoreOlderDays = true;
 let isLoadingOlderDays = false;
 let canAutoLoadOlderDays = false;
@@ -233,27 +240,126 @@ function requestNotebookName() {
   });
 }
 
-function requestLoadMoreDays() {
-  return showPromptModal({
-    titleText: 'Load More Chunk Size',
-    labelText: 'Days to load per request',
-    placeholder: '3',
-    initialValue: String(loadMoreDays),
-    confirmText: 'Save',
-    validate: (value) => toPositiveInt(value) !== null || 'Enter a positive whole number.'
+function requestAppSettingValue(settingKey) {
+  if (settingKey === 'loadMoreDays') {
+    return showPromptModal({
+      titleText: 'Load More Days',
+      labelText: 'Days to load per request',
+      placeholder: '3',
+      initialValue: String(loadMoreDays),
+      confirmText: 'Save',
+      validate: (value) => toPositiveInt(value) !== null || 'Enter a positive whole number.'
+    });
+  }
 
-  });
+  if (settingKey === 'priorDays') {
+    return showPromptModal({
+      titleText: 'Initial Prior Days',
+      labelText: 'Days to load on startup',
+      placeholder: '3',
+      initialValue: String(priorDays),
+      confirmText: 'Save',
+      validate: (value) => toPositiveInt(value) !== null || 'Enter a positive whole number.'
+    });
+  }
+
+  if (settingKey === 'llmProvider') {
+    return showPromptModal({
+      titleText: 'LLM Provider',
+      labelText: 'Provider name',
+      placeholder: 'ollama',
+      initialValue: llmProvider,
+      confirmText: 'Save',
+      validate: (value) => value.trim().toLowerCase() === 'ollama' || 'Only "ollama" is currently supported.'
+    });
+  }
+
+  if (settingKey === 'llmBaseUrl') {
+    return showPromptModal({
+      titleText: 'LLM Base URL',
+      labelText: 'Base URL for the LLM service',
+      placeholder: 'http://localhost:11434',
+      initialValue: llmBaseUrl,
+      confirmText: 'Save',
+      validate: (value) => value.trim().length > 0 || 'Base URL is required.'
+    });
+  }
+
+  if (settingKey === 'llmModel') {
+    return showPromptModal({
+      titleText: 'LLM Model',
+      labelText: 'Model name',
+      placeholder: 'llama3.2',
+      initialValue: llmModel,
+      confirmText: 'Save',
+      validate: (value) => value.trim().length > 0 || 'Model is required.'
+    });
+  }
+
+  if (settingKey === 'llmSearchScope') {
+    return showPromptModal({
+      titleText: 'LLM Search Scope',
+      labelText: 'Default scope (loaded or full)',
+      placeholder: 'loaded',
+      initialValue: llmSearchScope,
+      confirmText: 'Save',
+      validate: (value) => {
+        const normalized = value.trim().toLowerCase();
+        return normalized === 'loaded' || normalized === 'full' || 'Enter either "loaded" or "full".';
+      }
+    });
+  }
+
+  return null;
 }
 
-function requestPriorDays() {
-  return showPromptModal({
-    titleText: 'Initial Prior Days',
-    labelText: 'Days to load on startup',
-    placeholder: '3',
-    initialValue: String(priorDays),
-    confirmText: 'Save',
-    validate: (value) => toPositiveInt(value) !== null || 'Enter a positive whole number.'
-  });
+function normalizeAppSettingValue(settingKey, enteredValue) {
+  if (settingKey === 'priorDays' || settingKey === 'loadMoreDays') {
+    return toPositiveInt(enteredValue);
+  }
+
+  if (settingKey === 'llmSearchScope') {
+    const normalized = enteredValue.trim().toLowerCase();
+    if (normalized !== 'loaded' && normalized !== 'full') {
+      return null;
+    }
+    return normalized;
+  }
+
+  const trimmed = enteredValue.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function applyAppSettingLocally(settingKey, value) {
+  if (settingKey === 'loadMoreDays') {
+    loadMoreDays = toPositiveInt(value) ?? loadMoreDays;
+    setLoadMoreButtonState();
+    return;
+  }
+
+  if (settingKey === 'priorDays') {
+    priorDays = toPositiveInt(value) ?? priorDays;
+    return;
+  }
+
+  if (settingKey === 'llmProvider' && typeof value === 'string') {
+    llmProvider = value;
+    return;
+  }
+
+  if (settingKey === 'llmBaseUrl' && typeof value === 'string') {
+    llmBaseUrl = value;
+    return;
+  }
+
+  if (settingKey === 'llmModel' && typeof value === 'string') {
+    llmModel = value;
+    return;
+  }
+
+  if (settingKey === 'llmSearchScope') {
+    llmSearchScope = value === 'full' ? 'full' : 'loaded';
+  }
 }
 
 function updateTime() {
@@ -269,6 +375,16 @@ async function loadEditors() {
   const config = await electronAPI.getConfig();
   priorDays = toPositiveInt(config.priorDays) ?? 3;
   loadMoreDays = toPositiveInt(config.loadMoreDays) ?? priorDays;
+  llmProvider = typeof config.llmProvider === 'string' && config.llmProvider.trim().length > 0
+    ? config.llmProvider.trim()
+    : llmProvider;
+  llmBaseUrl = typeof config.llmBaseUrl === 'string' && config.llmBaseUrl.trim().length > 0
+    ? config.llmBaseUrl.trim()
+    : llmBaseUrl;
+  llmModel = typeof config.llmModel === 'string' && config.llmModel.trim().length > 0
+    ? config.llmModel.trim()
+    : llmModel;
+  llmSearchScope = config.llmSearchScope === 'full' ? 'full' : 'loaded';
   currentNotebook = config.currentNotebook || currentNotebook;
   hasMoreOlderDays = true;
   isLoadingOlderDays = false;
@@ -430,7 +546,7 @@ function createEditor(container, content, date, isToday) {
   const superSearchKeymap = Prec.highest(keymap.of([
     {
       key: 'Ctrl-Shift-F | F3',
-      run: (view) => { openLLMSearch(); return true; }
+      run: (view) => { openLLMSearch(llmSearchScope); return true; }
     }
   ]));
 
@@ -807,7 +923,7 @@ $btnEndDay.addEventListener('click', () => {
 
 $btnAnalysis.addEventListener('click', showAnalysis);
 
-$btnSearch.addEventListener('click', openLLMSearch);
+$btnSearch.addEventListener('click', () => openLLMSearch(llmSearchScope));
 
 $btnPrevEditor.addEventListener('click', () => {
   focusAdjacentEditor(-1);
@@ -862,28 +978,16 @@ if (electronAPI.onCreateNotebookRequested) {
     });
   }
 
-  // hm...these feel like they should be consolidated (probably into a single config page instead of separate prompts) or at least don't need separate subhandlers
-  if (electronAPI.onSetLoadMoreDaysRequested) {
-    electronAPI.onSetLoadMoreDaysRequested(async () => {
-      const enteredValue = await requestLoadMoreDays();
+  if (electronAPI.onAppSettingRequested) {
+    electronAPI.onAppSettingRequested(async (settingKey) => {
+      const enteredValue = await requestAppSettingValue(settingKey);
       if (!enteredValue) return;
 
-      const parsed = toPositiveInt(enteredValue) ?? loadMoreDays;
-      const result = await electronAPI.setLoadMoreDays(parsed);
-      loadMoreDays = toPositiveInt(result?.loadMoreDays) ?? parsed;
-      setLoadMoreButtonState();
-    });
-  }
+      const normalized = normalizeAppSettingValue(settingKey, enteredValue);
+      if (normalized === null || normalized === undefined) return;
 
-  if (electronAPI.onSetPriorDaysRequested) {
-    electronAPI.onSetPriorDaysRequested(async () => {
-      const enteredValue = await requestPriorDays();
-      if (!enteredValue) return;
-
-      const parsed = toPositiveInt(enteredValue) ?? priorDays;
-      const result = await electronAPI.setPriorDays(parsed);
-      priorDays = toPositiveInt(result?.priorDays) ?? parsed;
-      // await loadEditors(); // originally suggested reloading them, but bad UX / unnecessary
+      const result = await electronAPI.setAppSetting(settingKey, normalized);
+      applyAppSettingLocally(result?.key ?? settingKey, result?.value ?? normalized);
     });
   }
 }

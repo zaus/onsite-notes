@@ -11,6 +11,9 @@ export type AppSettings = {
   llmSearchScope?: 'loaded' | 'full';
 };
 
+export type AppSettingKey = keyof AppSettings;
+type AppSettingValue<K extends AppSettingKey> = NonNullable<AppSettings[K]>;
+
 export class AppSettingsStore {
   private settings: AppSettings = {};
   private readonly settingsPath: string;
@@ -42,11 +45,11 @@ export class AppSettingsStore {
   }
 
   setPriorDays(days: number): number {
-    return this.setSetting('priorDays', days);
+    return this.setAppSetting('priorDays', days);
   }
 
   setLoadMoreDays(days: number): number {
-    return this.setSetting('loadMoreDays', days);
+    return this.setAppSetting('loadMoreDays', days);
   }
 
   getPriorDays(fallback: number): number {
@@ -74,34 +77,49 @@ export class AppSettingsStore {
   }
 
   setLLMProvider(provider: string): void {
-    this.settings = { ...this.settings, llmProvider: provider };
-    this.save();
+    this.setAppSetting('llmProvider', provider);
   }
 
   setLLMBaseUrl(url: string): void {
-    this.settings = { ...this.settings, llmBaseUrl: url };
-    this.save();
+    this.setAppSetting('llmBaseUrl', url);
   }
 
   setLLMModel(model: string): void {
-    this.settings = { ...this.settings, llmModel: model };
-    this.save();
+    this.setAppSetting('llmModel', model);
   }
 
   setLLMSearchScope(scope: 'loaded' | 'full'): void {
-    this.settings = { ...this.settings, llmSearchScope: scope };
-    this.save();
+    this.setAppSetting('llmSearchScope', scope);
   }
 
-  private setSetting<K extends keyof AppSettings>(key: K, value: number): number {
-    const parsed = toPositiveInt(value);
-    if (parsed === null) {
-      throw new Error(`${key} must be a positive integer`);
-    }
-
+  setAppSetting<K extends AppSettingKey>(key: K, value: AppSettingValue<K>): AppSettingValue<K> {
+    const parsed = this.parseSettingValue(key, value);
     this.settings = { ...this.settings, [key]: parsed };
     this.save();
     return parsed;
+  }
+
+  private parseSettingValue<K extends AppSettingKey>(key: K, value: AppSettingValue<K>): AppSettingValue<K> {
+    if (key === 'priorDays' || key === 'loadMoreDays') {
+      const parsed = toPositiveInt(value);
+      if (parsed === null) {
+        throw new Error(`${key} must be a positive integer`);
+      }
+      return parsed as AppSettingValue<K>;
+    }
+
+    if (key === 'llmSearchScope') {
+      if (value !== 'loaded' && value !== 'full') {
+        throw new Error('llmSearchScope must be either loaded or full');
+      }
+      return value;
+    }
+
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new Error(`${key} must be a non-empty string`);
+    }
+
+    return value.trim() as AppSettingValue<K>;
   }
 
   private resolveIntSetting(envValue: string | undefined, stored: number | undefined, fallback: number): number {

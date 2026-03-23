@@ -8,13 +8,13 @@ let llmSearchSession = null;
 /**
  * Open the LLM search modal.
  */
-export function openLLMSearch() {
+export function openLLMSearch(initialScope = 'loaded') {
   // Check LLM health first
   window.electron.llmChat.checkLLMHealth().then((health) => {
     if (!health.available) {
       showLLMSetupGuidance(health.error, health.setupGuide);
     } else {
-      showLLMSearchModal();
+      showLLMSearchModal(initialScope);
     }
   });
 }
@@ -61,7 +61,7 @@ function showLLMSetupGuidance(error, setupGuide) {
 /**
  * Show the main LLM search modal with UI for scope, query, and response.
  */
-function showLLMSearchModal() {
+function showLLMSearchModal(initialScope) {
   const modal = createModal('LLM Notebook Search');
 
   // Scope selector
@@ -79,6 +79,7 @@ function showLLMSearchModal() {
     <option value="loaded">Currently loaded days</option>
     <option value="full">All notebook history</option>
   `;
+  scopeSelect.value = initialScope === 'full' ? 'full' : 'loaded';
 
   scopeDiv.appendChild(scopeLabel);
   scopeDiv.appendChild(scopeSelect);

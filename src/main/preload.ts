@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { AppSettingKey, AppSettings } from './appSettings';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   readFile: (date: string) => ipcRenderer.invoke('read-file', date),
@@ -11,8 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   analyze: (startDate: string, endDate: string, format: 'text' | 'html' = 'text') => ipcRenderer.invoke('analyze', startDate, endDate, format),
   setNotebook: (name: string) => ipcRenderer.invoke('set-notebook', name),
   listNotebooks: () => ipcRenderer.invoke('list-notebooks'),
-  setPriorDays: (days: number) => ipcRenderer.invoke('set-prior-days', days),
-  setLoadMoreDays: (days: number) => ipcRenderer.invoke('set-load-more-days', days),
+  setAppSetting: (key: AppSettingKey, value: AppSettings[AppSettingKey]) => ipcRenderer.invoke('set-app-setting', key, value),
   onNotebookChanged: (callback: (payload: { currentNotebook: string; notebooks: string[] }) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, payload: { currentNotebook: string; notebooks: string[] }) => {
       callback(payload);
@@ -25,15 +25,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('create-notebook-requested', listener);
     return () => ipcRenderer.removeListener('create-notebook-requested', listener);
   },
-  onSetLoadMoreDaysRequested: (callback: () => void) => {
-    const listener = () => callback();
-    ipcRenderer.on('set-load-more-days-requested', listener);
-    return () => ipcRenderer.removeListener('set-load-more-days-requested', listener);
-  },
-  onSetPriorDaysRequested: (callback: () => void) => {
-    const listener = () => callback();
-    ipcRenderer.on('set-prior-days-requested', listener);
-    return () => ipcRenderer.removeListener('set-prior-days-requested', listener);
+  onAppSettingRequested: (callback: (key: AppSettingKey) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, key: AppSettingKey) => callback(key);
+    ipcRenderer.on('app-setting-requested', listener);
+    return () => ipcRenderer.removeListener('app-setting-requested', listener);
   },
   onViewDaySourceRequested: (callback: () => void) => {
     const listener = () => callback();

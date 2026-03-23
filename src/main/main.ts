@@ -3,6 +3,7 @@ import type { IpcMainInvokeEvent, MenuItemConstructorOptions } from 'electron';
 import * as path from 'path';
 import { Analyzer } from './analyzer';
 import { AppSettingsStore } from './appSettings';
+import type { AppSettingKey, AppSettings } from './appSettings';
 import { NotebookManager } from './notebookManager';
 import { createLLMProvider } from './llmProviderFactory';
 import { NotebookRetriever } from './retrievalService';
@@ -40,6 +41,15 @@ function buildAppMenu(win: BrowserWindow): void {
       notifyNotebookChanged(win);
     }
   }));
+
+  const settingMenuItems: Array<{ label: string; key: AppSettingKey }> = [
+    { label: 'Set Prior Days...', key: 'priorDays' },
+    { label: 'Set Load More Days...', key: 'loadMoreDays' },
+    { label: 'Set LLM Provider...', key: 'llmProvider' },
+    { label: 'Set LLM Base URL...', key: 'llmBaseUrl' },
+    { label: 'Set LLM Model...', key: 'llmModel' },
+    { label: 'Set LLM Search Scope...', key: 'llmSearchScope' }
+  ];
 
   const template: MenuItemConstructorOptions[] = [
     {
@@ -91,10 +101,10 @@ function buildAppMenu(win: BrowserWindow): void {
     },
     {
       label: 'Settings',
-      submenu: [
-        { label: 'Set Prior Days...', click: () => win.webContents.send('set-prior-days-requested') },
-        { label: 'Set Load More Days...', click: () => win.webContents.send('set-load-more-days-requested') }
-      ]
+      submenu: settingMenuItems.map(({ label, key }) => ({
+        label,
+        click: () => win.webContents.send('app-setting-requested', key)
+      }))
     },
     {
       label: 'Window',
@@ -185,17 +195,15 @@ app.whenReady().then(async () => {
     return notebookManager.listNotebooks();
   });
 
-  ipcMain.handle('set-load-more-days', async (_event: IpcMainInvokeEvent, days: number) => {
-    const parsed = appSettingsStore.setLoadMoreDays(days);
+  ipcMain.handle('set-app-setting', async (
+    _event: IpcMainInvokeEvent,
+    key: AppSettingKey,
+    value: AppSettings[AppSettingKey]
+  ) => {
+    const parsed = appSettingsStore.setAppSetting(key, value as never);
     return {
-      loadMoreDays: parsed
-    };
-  });
-
-  ipcMain.handle('set-prior-days', async (_event: IpcMainInvokeEvent, days: number) => {
-    const parsed = appSettingsStore.setPriorDays(days);
-    return {
-      priorDays: parsed
+      key,
+      value: parsed
     };
   });
 
@@ -206,7 +214,11 @@ app.whenReady().then(async () => {
 
     return {
       priorDays,
-      loadMoreDays: loadMoreDays,
+      loadMoreDays,
+      llmProvider: appSettingsStore.getLLMProvider(),
+      llmBaseUrl: appSettingsStore.getLLMBaseUrl(),
+      llmModel: appSettingsStore.getLLMModel(),
+      llmSearchScope: appSettingsStore.getLLMSearchScope(),
       currentNotebook: notebookManager.getCurrentNotebook(),
       notebooks: notebookManager.listNotebooks(),
       notebooksRootDir: notebookManager.getNotebooksRootDir()
@@ -243,8 +255,11 @@ app.whenReady().then(async () => {
     }
   });
 
-  ipcMain.handle('llm:start-session', async (_event: IpcMainInvokeEvent, scope: 'loaded' | 'full') => {
+  ipcMain.handle('llm:start-session', async (_event: IpcMainInvokeEvent, scope?: 'loaded' | 'full') => {
     const sessionId = generateSessionId();
+    const resolvedScope = scope === 'full' || scope === 'loaded'
+      ? scope
+      : appSettingsStore.getLLMSearchScope();
     
     try {
       const provider = createLLMProvider({
@@ -257,7 +272,7 @@ app.whenReady().then(async () => {
       const notebookPath = await notebookManager.getCurrentNotebookPath();
       const retriever = new NotebookRetriever(notebookPath);
       const loadedFiles = await notebookManager.listFiles();
-      const documents = await retriever.loadNotebook(scope, loadedFiles);
+      const documents = await retriever.loadNotebook(resolvedScope, loadedFiles);
 
       llmSessions.set(sessionId, {
         context: '',
