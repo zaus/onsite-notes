@@ -49,7 +49,9 @@ function buildAppMenu(win: BrowserWindow): void {
     { label: 'Set LLM Provider...', key: 'llmProvider' },
     { label: 'Set LLM Base URL...', key: 'llmBaseUrl' },
     { label: 'Set LLM Model...', key: 'llmModel' },
-    { label: 'Set LLM Search Scope...', key: 'llmSearchScope' }
+    { label: 'Set LLM Search Scope...', key: 'llmSearchScope' },
+    { label: 'Set LLM Context Before...', key: 'llmContextBefore' },
+    { label: 'Set LLM Context After...', key: 'llmContextAfter' }
   ];
 
   const template: MenuItemConstructorOptions[] = [
@@ -143,6 +145,14 @@ app.whenReady().then(async () => {
   await notebookManager.init('default');
   const appSettingsStore = new AppSettingsStore(app.getPath('userData'));
 
+  function createNotebookRetriever(notebookPath: string): NotebookRetriever {
+    return new NotebookRetriever(
+      notebookPath,
+      appSettingsStore.getLLMContextBefore(),
+      appSettingsStore.getLLMContextAfter()
+    );
+  }
+
   function getLLMProviderConfig(): LLMProviderConfig {
     return {
       provider: appSettingsStore.getLLMProvider(),
@@ -163,12 +173,24 @@ app.whenReady().then(async () => {
     }
 
     const latestScope = appSettingsStore.getLLMSearchScope();
-    if (session.scope !== latestScope) {
+    const latestContextBefore = appSettingsStore.getLLMContextBefore();
+    const latestContextAfter = appSettingsStore.getLLMContextAfter();
+
+    if (
+      session.scope !== latestScope ||
+      session.retrieved.length === 0
+    ) {
       const notebookPath = await notebookManager.getCurrentNotebookPath();
-      const retriever = new NotebookRetriever(notebookPath);
+      const retriever = createNotebookRetriever(notebookPath);
       const loadedFiles = await notebookManager.listFiles();
       session.retrieved = await retriever.loadNotebook(latestScope, loadedFiles);
       session.scope = latestScope;
+      session.context = '';
+    }
+
+    if (session.contextBefore !== latestContextBefore || session.contextAfter !== latestContextAfter) {
+      session.contextBefore = latestContextBefore;
+      session.contextAfter = latestContextAfter;
       session.context = '';
     }
   }
@@ -249,6 +271,8 @@ app.whenReady().then(async () => {
       llmBaseUrl: appSettingsStore.getLLMBaseUrl(),
       llmModel: appSettingsStore.getLLMModel(),
       llmSearchScope: appSettingsStore.getLLMSearchScope(),
+      llmContextBefore: appSettingsStore.getLLMContextBefore(),
+      llmContextAfter: appSettingsStore.getLLMContextAfter(),
       currentNotebook: notebookManager.getCurrentNotebook(),
       notebooks: notebookManager.listNotebooks(),
       notebooksRootDir: notebookManager.getNotebooksRootDir()
@@ -288,7 +312,7 @@ app.whenReady().then(async () => {
 
       // Load notebook files for retrieval
       const notebookPath = await notebookManager.getCurrentNotebookPath();
-      const retriever = new NotebookRetriever(notebookPath);
+      const retriever = createNotebookRetriever(notebookPath);
       const loadedFiles = await notebookManager.listFiles();
       const documents = await retriever.loadNotebook(resolvedScope, loadedFiles);
 
@@ -297,6 +321,8 @@ app.whenReady().then(async () => {
         provider,
         providerConfig,
         scope: resolvedScope,
+        contextBefore: appSettingsStore.getLLMContextBefore(),
+        contextAfter: appSettingsStore.getLLMContextAfter(),
         messages: [],
         retrieved: documents,
       });
@@ -327,7 +353,7 @@ app.whenReady().then(async () => {
       // Perform retrieval when context is missing (new session or scope changed)
       if (!session.context) {
         const notebookPath = await notebookManager.getCurrentNotebookPath();
-        const retriever = new NotebookRetriever(notebookPath);
+        const retriever = createNotebookRetriever(notebookPath);
         const chunks = retriever.rankAndChunk(userMessage, session.retrieved, 5);
         session.context = retriever.buildContext(chunks);
       }
@@ -346,7 +372,7 @@ app.whenReady().then(async () => {
           session.messages.push({ role: 'assistant', content: fullResponse });
 
           const notebookPath = await notebookManager.getCurrentNotebookPath();
-          const retriever = new NotebookRetriever(notebookPath);
+          const retriever = createNotebookRetriever(notebookPath);
           const chunks = retriever.rankAndChunk(userMessage, session.retrieved, 3);
           event.sender.send('llm:chunk', sessionId, {
             type: 'citations',

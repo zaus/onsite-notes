@@ -304,6 +304,28 @@ async function requestAppSettingValue(settingKey) {
     });
   }
 
+  if (settingKey === 'llmContextBefore') {
+    return showPromptModal({
+      titleText: 'LLM Context Before',
+      labelText: 'Characters to include before a match',
+      placeholder: '150',
+      initialValue: String(config.llmContextBefore),
+      confirmText: 'Save',
+      validate: (value) => toPositiveInt(value) !== null || 'Enter a positive whole number.'
+    });
+  }
+
+  if (settingKey === 'llmContextAfter') {
+    return showPromptModal({
+      titleText: 'LLM Context After',
+      labelText: 'Characters to include after a match',
+      placeholder: '300',
+      initialValue: String(config.llmContextAfter),
+      confirmText: 'Save',
+      validate: (value) => toPositiveInt(value) !== null || 'Enter a positive whole number.'
+    });
+  }
+
   return null;
 }
 

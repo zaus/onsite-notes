@@ -21,6 +21,8 @@ export interface LLMSession {
   provider: LLMProvider;
   providerConfig: LLMProviderConfig;
   scope: 'loaded' | 'full';
+  contextBefore: number;
+  contextAfter: number;
   messages: LLMMessage[];
   retrieved: RetrievalDocument[];
 }

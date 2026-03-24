@@ -9,6 +9,8 @@ export type AppSettings = {
   llmBaseUrl?: string;
   llmModel?: string;
   llmSearchScope?: 'loaded' | 'full';
+  llmContextBefore?: number;
+  llmContextAfter?: number;
 };
 
 export type AppSettingKey = keyof AppSettings;
@@ -76,6 +78,14 @@ export class AppSettingsStore {
     return this.settings.llmSearchScope || 'loaded';
   }
 
+  getLLMContextBefore(fallback = 150): number {
+    return this.resolveIntSetting(process.env.ONSITE_LLM_CONTEXT_BEFORE, this.settings.llmContextBefore, fallback);
+  }
+
+  getLLMContextAfter(fallback = 300): number {
+    return this.resolveIntSetting(process.env.ONSITE_LLM_CONTEXT_AFTER, this.settings.llmContextAfter, fallback);
+  }
+
   setLLMProvider(provider: string): void {
     this.setAppSetting('llmProvider', provider);
   }
@@ -92,6 +102,14 @@ export class AppSettingsStore {
     this.setAppSetting('llmSearchScope', scope);
   }
 
+  setLLMContextBefore(chars: number): void {
+    this.setAppSetting('llmContextBefore', chars);
+  }
+
+  setLLMContextAfter(chars: number): void {
+    this.setAppSetting('llmContextAfter', chars);
+  }
+
   setAppSetting<K extends AppSettingKey>(key: K, value: AppSettingValue<K>): AppSettingValue<K> {
     const parsed = this.parseSettingValue(key, value);
     this.settings = { ...this.settings, [key]: parsed };
@@ -100,7 +118,7 @@ export class AppSettingsStore {
   }
 
   private parseSettingValue<K extends AppSettingKey>(key: K, value: AppSettingValue<K>): AppSettingValue<K> {
-    if (key === 'priorDays' || key === 'loadMoreDays') {
+    if (key === 'priorDays' || key === 'loadMoreDays' || key === 'llmContextBefore' || key === 'llmContextAfter') {
       const parsed = toPositiveInt(value);
       if (parsed === null) {
         throw new Error(`${key} must be a positive integer`);
