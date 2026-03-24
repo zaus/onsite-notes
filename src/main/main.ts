@@ -222,14 +222,6 @@ app.whenReady().then(async () => {
     )).sort();
   }
 
-  function haveSameFiles(left: string[], right: string[]): boolean {
-    if (left.length !== right.length) {
-      return false;
-    }
-
-    return left.every((file, index) => file === right[index]);
-  }
-
   async function resolveRetrievalFiles(scope: 'loaded' | 'full', loadedFiles?: string[]): Promise<string[]> {
     if (scope === 'loaded') {
       return normalizeLoadedFiles(loadedFiles);
@@ -238,16 +230,15 @@ app.whenReady().then(async () => {
     return notebookManager.listFiles();
   }
 
-  async function reloadSessionDocuments(session: LLMSession, loadedFiles?: string[]): Promise<void> {
+  async function reloadSessionDocuments(session: LLMSession): Promise<void> {
     const notebookPath = await notebookManager.getCurrentNotebookPath();
     const retriever = createNotebookRetriever(notebookPath);
-    const retrievalFiles = await resolveRetrievalFiles(session.scope, loadedFiles);
-    session.loadedFiles = session.scope === 'loaded' ? retrievalFiles : [];
+    const retrievalFiles = await resolveRetrievalFiles(session.scope, session.loadedFiles);
     session.retrieved = await retriever.loadNotebook(retrievalFiles);
     session.context = '';
   }
 
-  async function syncSessionWithSettings(session: LLMSession, loadedFiles?: string[]): Promise<void> {
+  async function syncSessionWithSettings(session: LLMSession): Promise<void> {
     const latestProviderConfig = getLLMProviderConfig();
     if (!LLMProviderConfig.isSame(session.providerConfig, latestProviderConfig)) {
       session.provider = createLLMProvider(latestProviderConfig);
@@ -257,12 +248,9 @@ app.whenReady().then(async () => {
 
     const latestContextBefore = appSettingsStore.getLLMContextBefore();
     const latestContextAfter = appSettingsStore.getLLMContextAfter();
-    const nextLoadedFiles = session.scope === 'loaded'
-      ? normalizeLoadedFiles(loadedFiles)
-      : session.loadedFiles;
 
-    if (session.retrieved.length === 0 || !haveSameFiles(session.loadedFiles, nextLoadedFiles)) {
-      await reloadSessionDocuments(session, nextLoadedFiles);
+    if (session.retrieved.length === 0) {
+      await reloadSessionDocuments(session);
     }
 
     if (session.contextBefore !== latestContextBefore || session.contextAfter !== latestContextAfter) {
@@ -421,8 +409,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('llm:send-message', async (
     event: IpcMainInvokeEvent,
     sessionId: string,
-    userMessage: string,
-    loadedFiles?: string[]
+    userMessage: string
   ) => {
     const session = llmSessions.get(sessionId);
     if (!session) {
@@ -430,7 +417,7 @@ app.whenReady().then(async () => {
     }
 
     try {
-      await syncSessionWithSettings(session, loadedFiles);
+      await syncSessionWithSettings(session);
 
       // Add user message to history
       session.messages.push({ role: 'user', content: userMessage });

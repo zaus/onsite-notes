@@ -243,7 +243,7 @@ async function performLLMSearch(
       });
 
       // Start the stream (push events will arrive via onChunk)
-      window.electron.llmChat.sendMessage(llmSearchSession, query, getLoadedFiles()).catch((err) => {
+      window.electron.llmChat.sendMessage(llmSearchSession, query).catch((err) => {
         removeListener();
         reject(err);
       });
