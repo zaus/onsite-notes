@@ -290,6 +290,17 @@ async function requestAppSettingValue(settingKey) {
     });
   }
 
+  if (settingKey === 'llmEmbeddingModel') {
+    return showPromptModal({
+      titleText: 'LLM Embedding Model',
+      labelText: 'Embedding model name',
+      placeholder: 'nomic-embed-text',
+      initialValue: String(config.llmEmbeddingModel || 'nomic-embed-text'),
+      confirmText: 'Save',
+      validate: (value) => value.trim().length > 0 || 'Embedding model is required.'
+    });
+  }
+
   if (settingKey === 'llmSearchScope') {
     return showPromptModal({
       titleText: 'LLM Search Scope',

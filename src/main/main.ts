@@ -4,7 +4,7 @@ import * as path from 'path';
 import { Analyzer } from './analyzer';
 import { AppSettingsStore } from './appSettings';
 import type { AppSettingKey, AppSettings } from './appSettings';
-import type { LLMProviderConfig, LLMSession } from './llmProvider';
+import { LLMProviderConfig, type LLMSession } from './llmProvider';
 import { NotebookManager } from './notebookManager';
 import { createLLMProvider } from './llmProviderFactory';
 import { NotebookRetriever } from './retrievalService';
@@ -51,7 +51,8 @@ function buildAppMenu(win: BrowserWindow): void {
     { label: 'Set LLM Model...', key: 'llmModel' },
     { label: 'Set LLM Search Scope...', key: 'llmSearchScope' },
     { label: 'Set LLM Context Before...', key: 'llmContextBefore' },
-    { label: 'Set LLM Context After...', key: 'llmContextAfter' }
+    { label: 'Set LLM Context After...', key: 'llmContextAfter' },
+    { label: 'Set LLM Embedding Model...', key: 'llmEmbeddingModel' }
   ];
 
   const template: MenuItemConstructorOptions[] = [
@@ -144,6 +145,56 @@ function createWindow() {
 app.whenReady().then(async () => {
   await notebookManager.init('default');
   const appSettingsStore = new AppSettingsStore(app.getPath('userData'));
+  const embeddingCache = new Map<string, number[]>();
+  let embeddingsUnavailableUntil = 0;
+
+  function hashText(input: string): string {
+    let hash = 2166136261;
+    for (let idx = 0; idx < input.length; idx++) {
+      hash ^= input.charCodeAt(idx);
+      hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+    }
+    return `${(hash >>> 0).toString(36)}_${input.length}`;
+  }
+
+  function putEmbeddingInCache(key: string, embedding: number[]): void {
+    embeddingCache.set(key, embedding);
+    if (embeddingCache.size > 3000) {
+      const oldest = embeddingCache.keys().next().value;
+      if (oldest) {
+        embeddingCache.delete(oldest);
+      }
+    }
+  }
+
+  async function embedWithProvider(session: LLMSession, input: string): Promise<number[] | null> {
+    if (Date.now() < embeddingsUnavailableUntil) {
+      return null;
+    }
+
+    if (!session.provider || !session.providerConfig.provider) {
+      return null;
+    }
+
+    const cacheKey = LLMProviderConfig.getCacheKey(session.providerConfig, hashText(input));
+    const cached = embeddingCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const embedding = await session.provider.embed(input);
+      if (embedding && embedding.length > 0) {
+        putEmbeddingInCache(cacheKey, embedding);
+        return embedding;
+      }
+    } catch {
+      // Ignore transient embedding errors and use keyword fallback
+    }
+
+    embeddingsUnavailableUntil = Date.now() + 15_000;
+    return null;
+  }
 
   function createNotebookRetriever(notebookPath: string): NotebookRetriever {
     return new NotebookRetriever(
@@ -158,18 +209,16 @@ app.whenReady().then(async () => {
       provider: appSettingsStore.getLLMProvider(),
       baseUrl: appSettingsStore.getLLMBaseUrl(),
       model: appSettingsStore.getLLMModel(),
+      embeddingModel: appSettingsStore.getLLMEmbeddingModel(),
     };
-  }
-
-  function isSameProviderConfig(a: LLMProviderConfig, b: LLMProviderConfig): boolean {
-    return a.provider === b.provider && a.baseUrl === b.baseUrl && a.model === b.model;
   }
 
   async function syncSessionWithSettings(session: LLMSession): Promise<void> {
     const latestProviderConfig = getLLMProviderConfig();
-    if (!isSameProviderConfig(session.providerConfig, latestProviderConfig)) {
+    if (!LLMProviderConfig.isSame(session.providerConfig, latestProviderConfig)) {
       session.provider = createLLMProvider(latestProviderConfig);
       session.providerConfig = latestProviderConfig;
+      session.context = '';
     }
 
     const latestScope = appSettingsStore.getLLMSearchScope();
@@ -193,6 +242,7 @@ app.whenReady().then(async () => {
       session.contextAfter = latestContextAfter;
       session.context = '';
     }
+
   }
 
   ipcMain.handle('read-file', async (_event: IpcMainInvokeEvent, date: string) => {
@@ -273,6 +323,7 @@ app.whenReady().then(async () => {
       llmSearchScope: appSettingsStore.getLLMSearchScope(),
       llmContextBefore: appSettingsStore.getLLMContextBefore(),
       llmContextAfter: appSettingsStore.getLLMContextAfter(),
+      llmEmbeddingModel: appSettingsStore.getLLMEmbeddingModel(),
       currentNotebook: notebookManager.getCurrentNotebook(),
       notebooks: notebookManager.listNotebooks(),
       notebooksRootDir: notebookManager.getNotebooksRootDir()
@@ -354,7 +405,9 @@ app.whenReady().then(async () => {
       if (!session.context) {
         const notebookPath = await notebookManager.getCurrentNotebookPath();
         const retriever = createNotebookRetriever(notebookPath);
-        const chunks = retriever.rankAndChunk(userMessage, session.retrieved, 5);
+        const chunks = await retriever.rankAndChunkHybrid(userMessage, session.retrieved, 5, {
+          embedText: (input) => embedWithProvider(session, input),
+        });
         session.context = retriever.buildContext(chunks);
       }
 
@@ -373,7 +426,9 @@ app.whenReady().then(async () => {
 
           const notebookPath = await notebookManager.getCurrentNotebookPath();
           const retriever = createNotebookRetriever(notebookPath);
-          const chunks = retriever.rankAndChunk(userMessage, session.retrieved, 3);
+          const chunks = await retriever.rankAndChunkHybrid(userMessage, session.retrieved, 3, {
+            embedText: (input) => embedWithProvider(session, input),
+          });
           event.sender.send('llm:chunk', sessionId, {
             type: 'citations',
             citations: chunks.map(c => ({ date: c.date, snippet: c.snippet })),

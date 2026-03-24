@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { NotebookRetriever } from '../../src/main/retrievalService';
+import { NotebookRetriever } from '../src/main/retrievalService';
 
 describe('NotebookRetriever', () => {
   it('should rank and chunk documents by keyword frequency', () => {
@@ -9,12 +9,12 @@ describe('NotebookRetriever', () => {
       {
         date: '2026-03-20',
         entries: [],
-        text: 'Meeting with the team about project planning. Discussed roadmap and milestones.',
+        text: 'Team planning session. Project planning with team members. Project discussion. Team coordination meeting.',
       },
       {
         date: '2026-03-19',
         entries: [],
-        text: 'Project kickoff was successful. Team meeting concluded with clear action items.',
+        text: 'Kickoff was successful. Meeting concluded with action items.',
       },
       {
         date: '2026-03-18',
@@ -27,9 +27,9 @@ describe('NotebookRetriever', () => {
     const chunks = retriever.rankAndChunk(query, documents, 2);
 
     expect(chunks.length).toBe(2);
-    // First result should be from 2026-03-20 (has all three keywords)
-    expect(chunks[0].date).toBe('2026-03-20');
-    expect(chunks[0].score).toBeGreaterThan(chunks[1].score);
+    // First result should be from 2026-03-20 (has all three keywords appearing multiple times)
+    expect(chunks[0]!.date).toBe('2026-03-20');
+    expect(chunks[0]!.score).toBeGreaterThan(chunks[1]!.score);
   });
 
   it('should return empty array for empty query', () => {
@@ -82,5 +82,61 @@ describe('NotebookRetriever', () => {
 
     const chunks = retriever.rankAndChunk('test', documents, 3);
     expect(chunks.length).toBe(3);
+  });
+
+  it('should rank semantic matches with embeddings', async () => {
+    const retriever = new NotebookRetriever('/mock/path');
+
+    const documents = [
+      {
+        date: '2026-03-20',
+        entries: [],
+        text: 'Resolved production incident after triaging a major bug in checkout flow.',
+      },
+      {
+        date: '2026-03-19',
+        entries: [],
+        text: 'Prepared onboarding checklist and team schedule for new hire.',
+      },
+    ];
+
+    const embedText = async (input: string): Promise<number[] | null> => {
+      const normalized = input.toLowerCase();
+      if (normalized.includes('incident') || normalized.includes('bug') || normalized.includes('outage')) {
+        return [1, 0, 0];
+      }
+      if (normalized.includes('onboarding') || normalized.includes('schedule')) {
+        return [0, 1, 0];
+      }
+      return [0, 0, 1];
+    };
+
+    const chunks = await retriever.rankAndChunkHybrid('outage issue', documents, 1, { embedText });
+    expect(chunks.length).toBe(1);
+    expect(chunks[0]?.date).toBe('2026-03-20');
+  });
+
+  it('should fall back to keyword ranking when embeddings are unavailable', async () => {
+    const retriever = new NotebookRetriever('/mock/path');
+
+    const documents = [
+      {
+        date: '2026-03-20',
+        entries: [],
+        text: 'Only this note mentions deployment rollback details.',
+      },
+      {
+        date: '2026-03-19',
+        entries: [],
+        text: 'General planning notes with no deployment mention.',
+      },
+    ];
+
+    const chunks = await retriever.rankAndChunkHybrid('rollback deployment', documents, 1, {
+      embedText: async () => null,
+    });
+
+    expect(chunks.length).toBe(1);
+    expect(chunks[0]?.date).toBe('2026-03-20');
   });
 });

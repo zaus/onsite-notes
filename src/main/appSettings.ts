@@ -11,6 +11,7 @@ export type AppSettings = {
   llmSearchScope?: 'loaded' | 'full';
   llmContextBefore?: number;
   llmContextAfter?: number;
+  llmEmbeddingModel?: string;
 };
 
 export type AppSettingKey = keyof AppSettings;
@@ -78,6 +79,10 @@ export class AppSettingsStore {
     return this.settings.llmSearchScope || 'loaded';
   }
 
+  getLLMEmbeddingModel(): string {
+    return this.settings.llmEmbeddingModel || 'nomic-embed-text';
+  }
+
   getLLMContextBefore(fallback = 150): number {
     return this.resolveIntSetting(process.env.ONSITE_LLM_CONTEXT_BEFORE, this.settings.llmContextBefore, fallback);
   }
@@ -100,6 +105,10 @@ export class AppSettingsStore {
 
   setLLMSearchScope(scope: 'loaded' | 'full'): void {
     this.setAppSetting('llmSearchScope', scope);
+  }
+
+  setLLMEmbeddingModel(model: string): void {
+    this.setAppSetting('llmEmbeddingModel', model);
   }
 
   setLLMContextBefore(chars: number): void {

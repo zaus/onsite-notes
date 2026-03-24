@@ -8,11 +8,13 @@ import { LLMProvider, type LLMMessage } from "./llmProvider";
 export class OllamaProvider extends LLMProvider {
 	private baseUrl: string;
 	private model: string;
+	private embeddingModel: string;
 
-	constructor(baseUrl: string = 'http://localhost:11434', model: string = 'llama3.2') {
+	constructor(baseUrl: string = 'http://localhost:11434', model: string = 'llama3.2', embeddingModel: string = 'nomic-embed-text') {
 		super();
 		this.baseUrl = baseUrl;
 		this.model = model;
+		this.embeddingModel = embeddingModel;
 	}
 
 	async checkHealth(): Promise<{ available: boolean; error?: string; }> {
@@ -162,6 +164,54 @@ export class OllamaProvider extends LLMProvider {
 		} catch (err) {
 			const errorMsg = err instanceof Error ? err.message : String(err);
 			throw new Error(`LLM chat failed: ${errorMsg}`);
+		}
+	}
+
+	async embed(input: string): Promise<number[] | null> {
+		const model = this.embeddingModel;
+
+		const tryEmbedEndpoint = async (): Promise<number[] | null> => {
+			const response = await fetch(`${this.baseUrl}/api/embed`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ model, input })
+			});
+
+			if (!response.ok) {
+				return null;
+			}
+
+			const data = await response.json() as { embeddings?: number[][]; embedding?: number[] };
+			if (Array.isArray(data.embedding)) {
+				return data.embedding;
+			}
+
+			if (Array.isArray(data.embeddings) && Array.isArray(data.embeddings[0])) {
+				return data.embeddings[0] || null;
+			}
+
+			return null;
+		};
+
+		const tryEmbeddingsEndpoint = async (): Promise<number[] | null> => {
+			const response = await fetch(`${this.baseUrl}/api/embeddings`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ model, prompt: input })
+			});
+
+			if (!response.ok) {
+				return null;
+			}
+
+			const data = await response.json() as { embedding?: number[] };
+			return Array.isArray(data.embedding) ? data.embedding : null;
+		};
+
+		try {
+			return await tryEmbedEndpoint() ?? await tryEmbeddingsEndpoint();
+		} catch {
+			return null;
 		}
 	}
 }

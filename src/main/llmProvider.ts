@@ -14,6 +14,22 @@ export interface LLMProviderConfig {
   provider: string;
   baseUrl: string;
   model: string;
+  embeddingModel: string;
+}
+
+export namespace LLMProviderConfig {
+  export function isSame(a: LLMProviderConfig, b: LLMProviderConfig): boolean {
+    return (
+      a.provider === b.provider &&
+      a.baseUrl === b.baseUrl &&
+      a.model === b.model &&
+      a.embeddingModel === b.embeddingModel
+    );
+  }
+
+  export function getCacheKey(config: LLMProviderConfig, inputHash: string): string {
+    return `${config.provider}|${config.baseUrl}|${config.embeddingModel}|${inputHash}`;
+  }
 }
 
 export interface LLMSession {
@@ -47,4 +63,12 @@ export abstract class LLMProvider {
     messages: LLMMessage[],
     context?: string
   ): AsyncIterable<string>;
+
+  /**
+   * Generate an embedding vector for semantic retrieval.
+   * @param input Text to embed
+   */
+  abstract embed(
+    input: string
+  ): Promise<number[] | null>;
 }

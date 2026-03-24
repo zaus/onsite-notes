@@ -9,6 +9,7 @@ export type LLMProviderFactory = (config: {
   provider: string;
   baseUrl?: string;
   model?: string;
+  embeddingModel?: string;
 }) => LLMProvider;
 
 /**
@@ -20,9 +21,10 @@ export function createLLMProvider(config: {
   provider: string;
   baseUrl?: string;
   model?: string;
+  embeddingModel?: string;
 }): LLMProvider {
   if (config.provider === 'ollama') {
-    return new OllamaProvider(config.baseUrl, config.model);
+    return new OllamaProvider(config.baseUrl, config.model, config.embeddingModel);
   }
   throw new Error(
     `Unknown LLM provider: ${config.provider}. Supported: ollama`
