@@ -3,13 +3,13 @@
  * Implements keyword-based retrieval with BM25-like scoring.
  */
 
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
-import { LogEntry } from './parser';
+import type { LogEntry } from './parser';
 
 export interface RetrievalDocument {
   date: string;
-  entries: LogEntry[];
+  entries: LogEntry[]; // todo: use these or remove them?
   text: string;
 }
 
@@ -26,40 +26,62 @@ export interface RetrievalResult {
 }
 
 export class NotebookRetriever {
-  private notebookPath: string;
 
-  constructor(notebookPath: string) {
-    this.notebookPath = notebookPath;
+  constructor(private notebookPath: string, private contextBefore = 150, private contextAfter = 300) {
   }
 
   /**
    * Load notebook documents based on scope.
    * @param scope 'loaded' = currently loaded editors, 'full' = all dates in notebook
-   * @param loadedDates Optional array of currently loaded date strings (YYYY-MM-DD)
+   * @param loadedFiles Optional array of loaded filenames (YYYY-MM-DD.txt)
    */
   async loadNotebook(
     scope: 'loaded' | 'full',
-    loadedDates?: string[]
+    loadedFiles?: string[]
   ): Promise<RetrievalDocument[]> {
     const documents: RetrievalDocument[] = [];
+    const dateRegex = /^(\d{4}-\d{2}-\d{2})\.txt$/;
 
-    if (scope === 'loaded' && loadedDates) {
-      // Load only specified dates
-      for (const date of loadedDates) {
+    if (scope === 'loaded' && loadedFiles) {
+      // Load only specified files
+      for (const file of loadedFiles) {
         try {
-          const filePath = join(this.notebookPath, `${date}.txt`);
+          const match = file.match(dateRegex);
+          if (!match || !match[1]) {
+            continue;
+          }
+
+          const date = match[1];
+          const filePath = join(this.notebookPath, file);
           const text = readFileSync(filePath, 'utf-8');
           documents.push({ date, entries: [], text });
         } catch {
-          // Skip missing date files
+          // Skip unreadable files
         }
       }
     } else if (scope === 'full') {
-      // In full scope, we would enumerate all YYYY-MM-DD.txt files
-      // For now, this is a placeholder—actual implementation would
-      // use fs.readdirSync and filter for .txt files
-      // This prevents expensive full-text indexing at startup
-      // TODO: implement full directory scan when needed
+      // Load all YYYY-MM-DD.txt files from the notebook directory
+      try {
+        const files = readdirSync(this.notebookPath);
+        
+        for (const file of files) {
+          const match = file.match(dateRegex);
+          if (!match || !match[1]) {
+            continue;
+          }
+
+          try {
+            const date = match[1];
+            const filePath = join(this.notebookPath, file);
+            const text = readFileSync(filePath, 'utf-8');
+            documents.push({ date, entries: [], text });
+          } catch {
+            // Skip unreadable files
+          }
+        }
+      } catch {
+        // If directory doesn't exist or can't be read, return empty
+      }
     }
 
     return documents;
@@ -103,8 +125,8 @@ export class NotebookRetriever {
         const firstTerm = terms[0];
         if (firstTerm) {
           const firstTermIndex = textLower.indexOf(firstTerm);
-          const start = Math.max(0, firstTermIndex - 150);
-          const end = Math.min(doc.text.length, firstTermIndex + 300);
+          const start = Math.max(0, firstTermIndex - this.contextBefore);
+          const end = Math.min(doc.text.length, firstTermIndex + this.contextAfter);
           const snippet = doc.text.substring(start, end);
 
           scored.push({
