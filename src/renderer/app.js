@@ -169,6 +169,94 @@ function focusEditorAtIndex(index) {
   return true;
 }
 
+function findEditorIndexByDate(date) {
+  return editors.findIndex((editor) => editor.date === date);
+}
+
+function findCitationRange(docText, snippet) {
+  const normalizedSnippet = String(snippet || '')
+    .replace(/^\.\.\./, '')
+    .replace(/\.\.\.$/, '')
+    .trim();
+
+  if (!normalizedSnippet) {
+    return null;
+  }
+
+  const candidates = [normalizedSnippet];
+  const linesByLength = normalizedSnippet
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .sort((left, right) => right.length - left.length);
+
+  if (linesByLength[0] && !candidates.includes(linesByLength[0])) {
+    candidates.push(linesByLength[0]);
+  }
+
+  const collapsedWhitespace = normalizedSnippet.replace(/\s+/g, ' ').trim();
+  if (collapsedWhitespace && !candidates.includes(collapsedWhitespace)) {
+    candidates.push(collapsedWhitespace);
+  }
+
+  for (const candidate of candidates) {
+    const start = docText.indexOf(candidate);
+    if (start !== -1) {
+      return {
+        from: start,
+        to: start + candidate.length,
+      };
+    }
+  }
+
+  return null;
+}
+
+async function ensureEditorLoaded(date) {
+  const existingIndex = findEditorIndexByDate(date);
+  if (existingIndex !== -1) {
+    return existingIndex;
+  }
+
+  const insertAtIndex = editors.findIndex((editor) => editor.date > date);
+  const inserted = await insertDayEditor(date, {
+    forceCreate: false,
+    insertAtIndex: insertAtIndex === -1 ? editors.length : insertAtIndex,
+  });
+
+  if (!inserted) {
+    return -1;
+  }
+
+  refreshSearchRegistration();
+  return findEditorIndexByDate(date);
+}
+
+async function focusDayEditor(date, snippet = '') {
+  const editorIndex = await ensureEditorLoaded(date);
+  if (editorIndex === -1) {
+    return false;
+  }
+
+  focusEditorAtIndex(editorIndex);
+
+  const editor = editors[editorIndex];
+  if (!editor) {
+    return false;
+  }
+
+  const matchRange = findCitationRange(editor.view.state.doc.toString(), snippet);
+  if (matchRange) {
+    editor.view.dispatch({
+      selection: EditorSelection.range(matchRange.from, matchRange.to),
+      scrollIntoView: true,
+    });
+  }
+
+  editor.view.focus();
+  return true;
+}
+
 function jumpToEditorEnd(view) {
   if (view === null || view === undefined) {
     focusEditorAtIndex();
@@ -394,7 +482,7 @@ async function loadEditors() {
 }
 
 async function insertDayEditor(date, options = {}) {
-  const { prepend = false, forceCreate = false } = options;
+  const { prepend = false, forceCreate = false, insertAtIndex = null } = options;
   if (loadedDates.has(date)) {
     return false;
   }
@@ -418,7 +506,11 @@ async function insertDayEditor(date, options = {}) {
   const $editorDiv = document.createElement('div');
   $section.appendChild($editorDiv);
 
-  if (prepend) {
+  const shouldInsertAtIndex = Number.isInteger(insertAtIndex) && insertAtIndex >= 0 && insertAtIndex < $editorContainer.children.length;
+
+  if (shouldInsertAtIndex) {
+    $editorContainer.insertBefore($section, $editorContainer.children[insertAtIndex]);
+  } else if (prepend) {
     $editorContainer.insertBefore($section, $editorContainer.firstChild);
   } else {
     $editorContainer.appendChild($section);
@@ -427,7 +519,12 @@ async function insertDayEditor(date, options = {}) {
   const view = createEditor($editorDiv, content, date, date === todayDate());
   const editorRecord = { date, view, section: $section };
 
-  if (prepend) {
+  if (shouldInsertAtIndex) {
+    editors.splice(insertAtIndex, 0, editorRecord);
+    if (insertAtIndex <= activeEditorIndex) {
+      activeEditorIndex += 1;
+    }
+  } else if (prepend) {
     editors.unshift(editorRecord);
     activeEditorIndex += 1;
   } else {
@@ -969,6 +1066,8 @@ if (electronAPI.onCreateNotebookRequested) {
     });
   }
 }
+
+window.focusDayEditor = focusDayEditor;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 

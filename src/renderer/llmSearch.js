@@ -186,7 +186,7 @@ async function performLLMSearch(
 
   const $answer = document.createElement('div');
   $answer.className = 'llm-turn-answer';
-  $answer.textContent = 'Thinking...';
+  $answer.innerHTML = '<em>Thinking...</em>';
 
   const $citations = document.createElement('div');
   $citations.className = 'citations hidden';
@@ -279,7 +279,7 @@ function renderCitations($citationList, citations) {
     // Click to focus that day's editor
     $cite.onclick = () => {
       if (window.focusDayEditor) {
-        window.focusDayEditor(cite.date);
+        window.focusDayEditor(cite.date, cite.snippet).catch(() => {});
       }
     };
 
