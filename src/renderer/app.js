@@ -493,7 +493,7 @@ async function loadOlderDays() {
 
 async function openLLMSearchWithConfiguredScope() {
   const config = await electronAPI.getConfig();
-  openLLMSearch(config.llmSearchScope);
+  openLLMSearch(config.llmSearchScope, () => editors.map(({ date }) => `${date}.txt`));
 }
 
 function createEditor(container, content, date, isToday) {

@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { NotebookRetriever } from '../src/main/retrievalService';
 
 describe('NotebookRetriever', () => {
@@ -69,6 +72,28 @@ describe('NotebookRetriever', () => {
     expect(context).toContain('2026-03-19');
     expect(context).toContain('Meeting discussion');
     expect(context).toContain('Kickoff discussion');
+  });
+
+  it('should load only the provided notebook files', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'onsite-notes-retrieval-'));
+
+    try {
+      fs.writeFileSync(path.join(tempDir, '2026-03-20.txt'), 'Loaded note', 'utf-8');
+      fs.writeFileSync(path.join(tempDir, '2026-03-21.txt'), 'Other note', 'utf-8');
+
+      const retriever = new NotebookRetriever(tempDir);
+      const documents = await retriever.loadNotebook(['2026-03-20.txt']);
+
+      expect(documents).toEqual([
+        {
+          date: '2026-03-20',
+          entries: [],
+          text: 'Loaded note',
+        },
+      ]);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   it('should respect topK parameter', () => {

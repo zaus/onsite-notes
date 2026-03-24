@@ -17,13 +17,13 @@ function closeSidebar() {
 /**
  * Open the LLM search modal.
  */
-export function openLLMSearch(initialScope = 'loaded') {
+export function openLLMSearch(initialScope = 'loaded', getLoadedFiles = () => []) {
   // Check LLM health first
   window.electron.llmChat.checkLLMHealth().then((health) => {
     if (!health.available) {
       showSetup(health.error, health.setupGuide);
     } else {
-      showSearch(initialScope);
+      showSearch(initialScope, getLoadedFiles);
     }
   });
 }
@@ -74,7 +74,7 @@ function showSetup(error, setupGuide) {
 /**
  * Show the main LLM search modal with UI for scope, query, and response.
  */
-function showSearch(initialScope) {
+function showSearch(initialScope, getLoadedFiles) {
   sidebarSession = openSidebar({
     titleText: 'Notebook Search',
     extraClass: 'llm-search-sidebar',
@@ -100,6 +100,12 @@ function showSearch(initialScope) {
         <option value="full">All notebook history</option>
       `;
       $select.value = initialScope === 'full' ? 'full' : 'loaded';
+      $select.addEventListener('change', () => {
+        if (llmSearchSession) {
+          window.electron.llmChat.closeSession(llmSearchSession).catch(() => {});
+          llmSearchSession = null;
+        }
+      });
 
       $scope.appendChild($label);
       $scope.appendChild($select);
@@ -122,7 +128,7 @@ function showSearch(initialScope) {
       $actions.appendChild($input);
 
       const runSearch = () => {
-        performLLMSearch($input, $select, $response);
+        performLLMSearch($input, $select, $response, getLoadedFiles);
       };
 
       const $btnSearch = document.createElement('button');
@@ -163,7 +169,8 @@ function showSearch(initialScope) {
 async function performLLMSearch(
   $queryInput,
   $scopeSelect,
-  $responses
+  $responses,
+  getLoadedFiles
 ) {
   const query = $queryInput.value.trim();
   if (!query) return;
@@ -203,7 +210,8 @@ async function performLLMSearch(
     // Start session
     if (!llmSearchSession) {
       const sessionResp = await window.electron.llmChat.startSession(
-        $scopeSelect.value
+        $scopeSelect.value,
+        getLoadedFiles()
       );
       llmSearchSession = sessionResp.sessionId;
     }
@@ -235,7 +243,7 @@ async function performLLMSearch(
       });
 
       // Start the stream (push events will arrive via onChunk)
-      window.electron.llmChat.sendMessage(llmSearchSession, query).catch((err) => {
+      window.electron.llmChat.sendMessage(llmSearchSession, query, getLoadedFiles()).catch((err) => {
         removeListener();
         reject(err);
       });

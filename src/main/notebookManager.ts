@@ -73,19 +73,19 @@ export class NotebookManager {
 
   async listFiles(): Promise<string[]> {
     const context = await this.getCurrentContext();
-    return context.fileManager.listFiles();
+    return context.fileManager.listFiles()
+      .filter(fileName => fileName.endsWith('.txt'))
+      .sort();
   }
 
   async listOlderDates(beforeDate: string, limit: number): Promise<string[]> {
-    const context = await this.getCurrentContext();
-    const files = context.fileManager.listFiles();
+    const files = await this.listFiles();
     const maxItems = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 0;
     if (maxItems <= 0) {
       return [];
     }
 
     const olderDates = files
-      .filter(fileName => fileName.endsWith('.txt'))
       .map(fileName => fileName.replace('.txt', ''))
       .filter(date => date < beforeDate);
 
@@ -105,7 +105,7 @@ export class NotebookManager {
 
   async getContentsInRange(startDate: string, endDate: string): Promise<Record<string, string>> {
     const context = await this.getCurrentContext();
-    const files = context.fileManager.listFiles();
+    const files = await this.listFiles();
     const contents: Record<string, string> = {};
 
     for (const fileName of files) {

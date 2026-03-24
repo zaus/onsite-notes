@@ -37,6 +37,7 @@ export interface LLMSession {
   provider: LLMProvider;
   providerConfig: LLMProviderConfig;
   scope: 'loaded' | 'full';
+  loadedFiles: string[];
   contextBefore: number;
   contextAfter: number;
   messages: LLMMessage[];

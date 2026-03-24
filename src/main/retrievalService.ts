@@ -3,7 +3,7 @@
  * Implements keyword-based retrieval with BM25-like scoring.
  */
 
-import { readFileSync, readdirSync } from 'fs';
+import { readFileSync } from 'fs';
 import { join } from 'path';
 import type { LogEntry } from './parser';
 
@@ -47,56 +47,18 @@ export class NotebookRetriever {
   }
 
   /**
-   * Load notebook documents based on scope.
-   * @param scope 'loaded' = currently loaded editors, 'full' = all dates in notebook
-   * @param loadedFiles Optional array of loaded filenames (YYYY-MM-DD.txt)
+   * Load notebook documents from the provided notebook files.
    */
-  async loadNotebook(
-    scope: 'loaded' | 'full',
-    loadedFiles?: string[]
-  ): Promise<RetrievalDocument[]> {
+  async loadNotebook(files: string[]): Promise<RetrievalDocument[]> {
     const documents: RetrievalDocument[] = [];
-    const dateRegex = /^(\d{4}-\d{2}-\d{2})\.txt$/;
-
-    if (scope === 'loaded' && loadedFiles) {
-      // Load only specified files
-      for (const file of loadedFiles) {
-        try {
-          const match = file.match(dateRegex);
-          if (!match || !match[1]) {
-            continue;
-          }
-
-          const date = match[1];
-          const filePath = join(this.notebookPath, file);
-          const text = readFileSync(filePath, 'utf-8');
-          documents.push({ date, entries: [], text });
-        } catch {
-          // Skip unreadable files
-        }
-      }
-    } else if (scope === 'full') {
-      // Load all YYYY-MM-DD.txt files from the notebook directory
+    for (const file of files) {
       try {
-        const files = readdirSync(this.notebookPath);
-        
-        for (const file of files) {
-          const match = file.match(dateRegex);
-          if (!match || !match[1]) {
-            continue;
-          }
-
-          try {
-            const date = match[1];
-            const filePath = join(this.notebookPath, file);
-            const text = readFileSync(filePath, 'utf-8');
-            documents.push({ date, entries: [], text });
-          } catch {
-            // Skip unreadable files
-          }
-        }
+        const date = file.endsWith('.txt') ? file.slice(0, -4) : file;
+        const filePath = join(this.notebookPath, file);
+        const text = readFileSync(filePath, 'utf-8');
+        documents.push({ date, entries: [], text });
       } catch {
-        // If directory doesn't exist or can't be read, return empty
+        // Skip unreadable files
       }
     }
 
