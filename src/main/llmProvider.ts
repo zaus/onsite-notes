@@ -18,6 +18,7 @@ export interface LLMProviderConfig {
 }
 
 export namespace LLMProviderConfig {
+  /** Checks if two LLMProviderConfig objects are the same */
   export function isSame(a: LLMProviderConfig, b: LLMProviderConfig): boolean {
     return (
       a.provider === b.provider &&
@@ -27,20 +28,28 @@ export namespace LLMProviderConfig {
     );
   }
 
+  /** Generates a cache key for a given config and input hash */
   export function getCacheKey(config: LLMProviderConfig, inputHash: string): string {
     return `${config.provider}|${config.baseUrl}|${config.embeddingModel}|${inputHash}`;
   }
 }
 
 export interface LLMSession {
+  /** What's included as context in the current session */
   context: string;
+  /** The provider instance powering this session */
   provider: LLMProvider;
+  /** The configuration used to create the provider instance; if changed will reload context */
   providerConfig: LLMProviderConfig;
+  /** What files are included in the current session */
   scope: 'loaded' | 'full';
+  /** Tracks the current context window settings to know when to refresh retrieved documents and/or context. Format: [contextBefore, contextAfter] */
+  contextWindow: number[];
+  /** The files currently loaded in the session to be used as context */
   loadedFiles: string[];
-  contextBefore: number;
-  contextAfter: number;
+  /** A history of messages exchanged in the session */
   messages: LLMMessage[];
+  /** Documents retrieved for the session */
   retrieved: RetrievalDocument[];
 }
 

@@ -246,16 +246,16 @@ app.whenReady().then(async () => {
       session.context = '';
     }
 
-    const latestContextBefore = appSettingsStore.getLLMContextBefore();
-    const latestContextAfter = appSettingsStore.getLLMContextAfter();
-
+    
     if (session.retrieved.length === 0) {
       await reloadSessionDocuments(session);
     }
 
-    if (session.contextBefore !== latestContextBefore || session.contextAfter !== latestContextAfter) {
-      session.contextBefore = latestContextBefore;
-      session.contextAfter = latestContextAfter;
+    const latestContextBefore = appSettingsStore.getLLMContextBefore();
+    const latestContextAfter = appSettingsStore.getLLMContextAfter();
+
+    if (!session.contextWindow || !session.contextWindow.length || session.contextWindow[0] !== latestContextBefore || session.contextWindow[1] !== latestContextAfter) {
+      session.contextWindow = [latestContextBefore, latestContextAfter];
       session.context = '';
     }
 
@@ -392,9 +392,8 @@ app.whenReady().then(async () => {
         provider,
         providerConfig,
         scope: resolvedScope,
-        loadedFiles: resolvedScope === 'loaded' ? retrievalFiles : [],
-        contextBefore: appSettingsStore.getLLMContextBefore(),
-        contextAfter: appSettingsStore.getLLMContextAfter(),
+        loadedFiles: retrievalFiles,
+        contextWindow: [appSettingsStore.getLLMContextBefore(), appSettingsStore.getLLMContextAfter()],
         messages: [],
         retrieved: documents,
       });
