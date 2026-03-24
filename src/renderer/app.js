@@ -436,6 +436,17 @@ async function requestAppSettingValue(settingKey) {
     });
   }
 
+  if (settingKey === 'llmTopK') {
+    return showPromptModal({
+      titleText: 'LLM Top K',
+      labelText: 'Number of results to retrieve',
+      placeholder: '5',
+      initialValue: String(config.llmTopK ?? 5),
+      confirmText: 'Save',
+      validate: (value) => toPositiveInt(value) !== null || 'Enter a positive whole number.'
+    });
+  }
+
   return null;
 }
 

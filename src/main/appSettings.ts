@@ -13,6 +13,7 @@ export type AppSettings = {
   llmContextAfter?: number;
   llmEmbeddingModel?: string;
   llmCitationMinScore?: number;
+  llmTopK?: number;
 };
 
 export type AppSettingKey = keyof AppSettings;
@@ -96,6 +97,10 @@ export class AppSettingsStore {
     return this.resolveFloatSetting(process.env.ONSITE_LLM_CITATION_MIN_SCORE, this.settings.llmCitationMinScore, fallback);
   }
 
+  getLLMTopK(fallback = 5): number {
+    return this.resolveIntSetting(process.env.ONSITE_LLM_TOP_K, this.settings.llmTopK, fallback);
+  }
+
   setLLMProvider(provider: string): void {
     this.setAppSetting('llmProvider', provider);
   }
@@ -136,7 +141,7 @@ export class AppSettingsStore {
   }
 
   private parseSettingValue<K extends AppSettingKey>(key: K, value: AppSettingValue<K>): AppSettingValue<K> {
-    if (key === 'priorDays' || key === 'loadMoreDays' || key === 'llmContextBefore' || key === 'llmContextAfter') {
+    if (key === 'priorDays' || key === 'loadMoreDays' || key === 'llmContextBefore' || key === 'llmContextAfter' || key === 'llmTopK') {
       const parsed = toPositiveInt(value);
       if (parsed === null) {
         throw new Error(`${key} must be a positive integer`);

@@ -53,6 +53,7 @@ function buildAppMenu(win: BrowserWindow): void {
     { label: 'Set LLM Context Before...', key: 'llmContextBefore' },
     { label: 'Set LLM Context After...', key: 'llmContextAfter' },
     { label: 'Set LLM Embedding Model...', key: 'llmEmbeddingModel' },
+    { label: 'Set LLM Top K Results...', key: 'llmTopK' },
     { label: 'Set LLM Citation Min Score...', key: 'llmCitationMinScore' }
   ];
 
@@ -341,6 +342,7 @@ app.whenReady().then(async () => {
       llmContextBefore: appSettingsStore.getLLMContextBefore(),
       llmContextAfter: appSettingsStore.getLLMContextAfter(),
       llmEmbeddingModel: appSettingsStore.getLLMEmbeddingModel(),
+      llmTopK: appSettingsStore.getLLMTopK(),
       llmCitationMinScore: appSettingsStore.getLLMCitationMinScore(),
       currentNotebook: notebookManager.getCurrentNotebook(),
       notebooks: notebookManager.listNotebooks(),
@@ -417,6 +419,7 @@ app.whenReady().then(async () => {
       throw new Error('Invalid session ID');
     }
 
+    const topk = appSettingsStore.getLLMTopK();
     try {
       await syncSessionWithSettings(session);
 
@@ -427,7 +430,7 @@ app.whenReady().then(async () => {
       if (!session.context) {
         const notebookPath = await notebookManager.getCurrentNotebookPath();
         const retriever = createNotebookRetriever(notebookPath);
-        const chunks = await retriever.rankAndChunkHybrid(userMessage, session.retrieved, 5, {
+        const chunks = await retriever.rankAndChunkHybrid(userMessage, session.retrieved, topk, {
           embedText: (input) => embedWithProvider(session, input),
         });
         session.context = retriever.buildContext(chunks);
@@ -451,7 +454,7 @@ app.whenReady().then(async () => {
 
           const notebookPath = await notebookManager.getCurrentNotebookPath();
           const retriever = createNotebookRetriever(notebookPath);
-          const chunks = await retriever.rankAndChunkHybrid(userMessage, session.retrieved, 3, {
+          const chunks = await retriever.rankAndChunkHybrid(userMessage, session.retrieved, topk, {
             embedText: (input) => embedWithProvider(session, input),
             minScore: appSettingsStore.getLLMCitationMinScore(),
             requireKeywordMatch: true,
