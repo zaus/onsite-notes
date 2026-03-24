@@ -249,7 +249,7 @@ async function focusDayEditor(date, snippet = '') {
   if (matchRange) {
     editor.view.dispatch({
       selection: EditorSelection.range(matchRange.from, matchRange.to),
-      scrollIntoView: true,
+      effects: EditorView.scrollIntoView(matchRange.from)
     });
   }
 
