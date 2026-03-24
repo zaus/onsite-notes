@@ -452,6 +452,9 @@ app.whenReady().then(async () => {
         let fullResponse = '';
         try {
           for await (const token of tokenGenerator) {
+            // first time we get a token, send a "start" event to allow UI to reset answer area
+            if (fullResponse === '') event.sender.send('llm:chunk', sessionId, { type: 'start' });
+
             fullResponse += token;
             event.sender.send('llm:chunk', sessionId, { type: 'token', content: token });
           }

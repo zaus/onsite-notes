@@ -49,6 +49,7 @@
   .response {
     flex: 1;
     overflow-y: auto;
+	overflow-x: hidden;
     background: var(--color-bg-main);
     border: var(--border-width-1) solid var(--color-border-main);
     border-radius: var(--radius-3);

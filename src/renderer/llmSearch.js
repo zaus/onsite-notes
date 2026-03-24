@@ -217,13 +217,13 @@ async function performLLMSearch(
     }
 
     // Stream response via push events (async iterables can't cross Electron IPC)
-    $answer.textContent = '';
-
     await new Promise((resolve, reject) => {
       const removeListener = window.electron.llmChat.onChunk((sessionId, chunk) => {
         if (sessionId !== llmSearchSession) return;
 
-        if (chunk.type === 'token') {
+        if (chunk.type === 'start') {
+          $answer.textContent = '';
+        } else if (chunk.type === 'token') {
           $answer.textContent += chunk.content;
           $responses.scrollTop = $responses.scrollHeight;
         } else if (chunk.type === 'citations') {
