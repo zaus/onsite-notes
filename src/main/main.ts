@@ -458,7 +458,7 @@ app.whenReady().then(async () => {
           });
           event.sender.send('llm:chunk', sessionId, {
             type: 'citations',
-            citations: chunks.map(c => ({ date: c.date, snippet: c.snippet })),
+            citations: chunks.map(c => ({ date: c.date, snippet: c.snippet, score: c.score })),
           });
 
           event.sender.send('llm:chunk', sessionId, { type: 'done' });

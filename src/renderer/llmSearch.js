@@ -9,6 +9,14 @@ import { openSidebar } from './sidebarShell';
 let llmSearchSession = null;
 let sidebarSession = null;
 
+function formatCitationScore(score) {
+  if (!Number.isFinite(score)) {
+    return 'n/a';
+  }
+
+  return score.toFixed(3);
+}
+
 /** Close the currently open sidebar and reset the chat session. */
 function closeSidebar() {
   sidebarSession?.close();
@@ -265,15 +273,26 @@ function renderCitations($citationList, citations) {
   for (const cite of citations) {
     const $cite = document.createElement('div');
     $cite.className = 'citation';
+    $cite.title = `Score: ${formatCitationScore(cite.score)}`;
+    $cite.setAttribute('aria-label', `Citation for ${cite.date}, score ${formatCitationScore(cite.score)}`);
+
+    const $heading = document.createElement('div');
+    $heading.className = 'citation-heading';
 
     const $date = document.createElement('strong');
     $date.textContent = cite.date;
+
+    const $score = document.createElement('span');
+    $score.className = 'citation-score';
+    $score.textContent = formatCitationScore(cite.score);
 
     const $snippet = document.createElement('span');
     $snippet.className = 'snippet';
     $snippet.textContent = cite.snippet.substring(0, 100) + '...';
 
-    $cite.appendChild($date);
+    $heading.appendChild($date);
+    $heading.appendChild($score);
+    $cite.appendChild($heading);
     $cite.appendChild($snippet);
 
     // Click to focus that day's editor

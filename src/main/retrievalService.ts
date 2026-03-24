@@ -22,7 +22,7 @@ export interface RankedChunk {
 
 export interface RetrievalResult {
   documents: RankedChunk[];
-  citations: Array<{ date: string; snippet: string }>;
+  citations: Array<{ date: string; snippet: string; score: number }>;
 }
 
 export interface HybridRetrievalOptions {

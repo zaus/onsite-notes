@@ -106,6 +106,25 @@
     border-radius: var(--radius-3);
   }
 
+  .citation-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8);
+  }
+
+  .citation-score {
+    display: inline-block;
+    padding: 0 var(--space-6);
+    border: var(--border-width-1) solid var(--color-border-main);
+    border-radius: var(--radius-999, 999px);
+    color: var(--color-text-dim);
+    background: color-mix(in srgb, var(--color-bg-control) 75%, transparent);
+    font-size: var(--font-size-10);
+    line-height: 1.6;
+    white-space: nowrap;
+  }
+
   .snippet {
     display: block;
     margin-top: var(--space-2);
