@@ -52,7 +52,8 @@ function buildAppMenu(win: BrowserWindow): void {
     { label: 'Set LLM Search Scope...', key: 'llmSearchScope' },
     { label: 'Set LLM Context Before...', key: 'llmContextBefore' },
     { label: 'Set LLM Context After...', key: 'llmContextAfter' },
-    { label: 'Set LLM Embedding Model...', key: 'llmEmbeddingModel' }
+    { label: 'Set LLM Embedding Model...', key: 'llmEmbeddingModel' },
+    { label: 'Set LLM Citation Min Score...', key: 'llmCitationMinScore' }
   ];
 
   const template: MenuItemConstructorOptions[] = [
@@ -340,6 +341,7 @@ app.whenReady().then(async () => {
       llmContextBefore: appSettingsStore.getLLMContextBefore(),
       llmContextAfter: appSettingsStore.getLLMContextAfter(),
       llmEmbeddingModel: appSettingsStore.getLLMEmbeddingModel(),
+      llmCitationMinScore: appSettingsStore.getLLMCitationMinScore(),
       currentNotebook: notebookManager.getCurrentNotebook(),
       notebooks: notebookManager.listNotebooks(),
       notebooksRootDir: notebookManager.getNotebooksRootDir()
@@ -451,6 +453,8 @@ app.whenReady().then(async () => {
           const retriever = createNotebookRetriever(notebookPath);
           const chunks = await retriever.rankAndChunkHybrid(userMessage, session.retrieved, 3, {
             embedText: (input) => embedWithProvider(session, input),
+            minScore: appSettingsStore.getLLMCitationMinScore(),
+            requireKeywordMatch: true,
           });
           event.sender.send('llm:chunk', sessionId, {
             type: 'citations',

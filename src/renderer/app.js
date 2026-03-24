@@ -5,7 +5,7 @@ import { indentUnit } from '@codemirror/language';
 
 // custom language for tracker syntax highlighting
 import { trackerSyntax } from './language-tracker';
-import { toPositiveInt } from '../main/utilities';
+import { toPositiveInt, toUnitIntervalNumber } from '../main/utilities';
 
 // native CTRL+F for single editor
 import { searchKeymap } from '@codemirror/search';
@@ -422,6 +422,17 @@ async function requestAppSettingValue(settingKey) {
       initialValue: String(config.llmContextAfter),
       confirmText: 'Save',
       validate: (value) => toPositiveInt(value) !== null || 'Enter a positive whole number.'
+    });
+  }
+
+  if (settingKey === 'llmCitationMinScore') {
+    return showPromptModal({
+      titleText: 'LLM Citation Min Score',
+      labelText: 'Minimum citation score (0 to 1)',
+      placeholder: '0.45',
+      initialValue: String(config.llmCitationMinScore ?? 0.45),
+      confirmText: 'Save',
+      validate: (value) => toUnitIntervalNumber(value) !== null || 'Enter a number from 0 to 1.'
     });
   }
 

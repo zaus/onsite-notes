@@ -32,6 +32,8 @@ export interface HybridRetrievalOptions {
   chunkSize?: number;
   chunkOverlap?: number;
   maxChunks?: number;
+  minScore?: number;
+  requireKeywordMatch?: boolean;
 }
 
 type DocumentChunk = {
@@ -75,7 +77,8 @@ export class NotebookRetriever {
   rankAndChunk(
     query: string,
     documents: RetrievalDocument[],
-    topK: number = 5
+    topK: number = 5,
+    options: Pick<HybridRetrievalOptions, 'minScore'> = {}
   ): RankedChunk[] {
     const terms = query
       .toLowerCase()
@@ -86,6 +89,7 @@ export class NotebookRetriever {
       return [];
     }
 
+    const minScore = options.minScore ?? 0;
     const scored: RankedChunk[] = [];
 
     for (const doc of documents) {
@@ -98,7 +102,7 @@ export class NotebookRetriever {
         score += matches;
       }
 
-      if (score > 0) {
+      if (score > 0 && score >= minScore) {
         // Extract snippet around first match
         const firstTerm = terms[0];
         if (firstTerm) {
@@ -140,6 +144,8 @@ export class NotebookRetriever {
     const maxChunks = options.maxChunks ?? 200;
     const semanticWeight = options.semanticWeight ?? 0.7;
     const keywordWeight = options.keywordWeight ?? 0.3;
+    const minScore = options.minScore ?? 0;
+    const requireKeywordMatch = options.requireKeywordMatch ?? false;
     const chunks = this
       .chunkDocuments(documents, chunkSize, chunkOverlap)
       .slice(-maxChunks);
@@ -150,7 +156,7 @@ export class NotebookRetriever {
 
     const embedText = options.embedText;
     if (!embedText) {
-      return this.rankAndChunk(query, documents, topK);
+      return this.rankAndChunk(query, documents, topK, { minScore });
     }
 
     let queryEmbedding: number[] | null = null;
@@ -161,13 +167,16 @@ export class NotebookRetriever {
     }
 
     if (!queryEmbedding || queryEmbedding.length === 0) {
-      return this.rankAndChunk(query, documents, topK);
+      return this.rankAndChunk(query, documents, topK, { minScore });
     }
 
     const scored: RankedChunk[] = [];
 
     for (const chunk of chunks) {
       const keywordRawScore = this.computeKeywordScore(terms, chunk.text);
+      if (requireKeywordMatch && keywordRawScore === 0) {
+        continue;
+      }
 
       let semanticScore = 0;
       try {
@@ -183,7 +192,7 @@ export class NotebookRetriever {
       const keywordNormalized = keywordRawScore / (keywordRawScore + 3);
       const score = (semanticWeight * semanticScore) + (keywordWeight * keywordNormalized);
 
-      if (score > 0) {
+      if (score > 0 && score >= minScore) {
         const snippet = `${chunk.start > 0 ? '...' : ''}${chunk.text}${chunk.end < this.getDocumentLength(documents, chunk.date) ? '...' : ''}`;
         scored.push({
           date: chunk.date,

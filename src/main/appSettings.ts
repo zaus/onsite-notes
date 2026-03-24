@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { toPositiveInt } from './utilities';
+import { toPositiveInt, toUnitIntervalNumber } from './utilities';
 
 export type AppSettings = {
   priorDays?: number;
@@ -12,6 +12,7 @@ export type AppSettings = {
   llmContextBefore?: number;
   llmContextAfter?: number;
   llmEmbeddingModel?: string;
+  llmCitationMinScore?: number;
 };
 
 export type AppSettingKey = keyof AppSettings;
@@ -91,6 +92,10 @@ export class AppSettingsStore {
     return this.resolveIntSetting(process.env.ONSITE_LLM_CONTEXT_AFTER, this.settings.llmContextAfter, fallback);
   }
 
+  getLLMCitationMinScore(fallback = 0.45): number {
+    return this.resolveFloatSetting(process.env.ONSITE_LLM_CITATION_MIN_SCORE, this.settings.llmCitationMinScore, fallback);
+  }
+
   setLLMProvider(provider: string): void {
     this.setAppSetting('llmProvider', provider);
   }
@@ -119,6 +124,10 @@ export class AppSettingsStore {
     this.setAppSetting('llmContextAfter', chars);
   }
 
+  setLLMCitationMinScore(score: number): void {
+    this.setAppSetting('llmCitationMinScore', score);
+  }
+
   setAppSetting<K extends AppSettingKey>(key: K, value: AppSettingValue<K>): AppSettingValue<K> {
     const parsed = this.parseSettingValue(key, value);
     this.settings = { ...this.settings, [key]: parsed };
@@ -131,6 +140,14 @@ export class AppSettingsStore {
       const parsed = toPositiveInt(value);
       if (parsed === null) {
         throw new Error(`${key} must be a positive integer`);
+      }
+      return parsed as AppSettingValue<K>;
+    }
+
+    if (key === 'llmCitationMinScore') {
+      const parsed = toUnitIntervalNumber(value);
+      if (parsed === null) {
+        throw new Error('llmCitationMinScore must be a number between 0 and 1');
       }
       return parsed as AppSettingValue<K>;
     }
@@ -151,5 +168,9 @@ export class AppSettingsStore {
 
   private resolveIntSetting(envValue: string | undefined, stored: number | undefined, fallback: number): number {
     return toPositiveInt(envValue) ?? toPositiveInt(stored) ?? fallback;
+  }
+
+  private resolveFloatSetting(envValue: string | undefined, stored: number | undefined, fallback: number): number {
+    return toUnitIntervalNumber(envValue) ?? toUnitIntervalNumber(stored) ?? fallback;
   }
 }

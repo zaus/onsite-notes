@@ -164,4 +164,84 @@ describe('NotebookRetriever', () => {
     expect(chunks.length).toBe(1);
     expect(chunks[0]?.date).toBe('2026-03-20');
   });
+
+  it('should filter low-confidence citation chunks', async () => {
+    const retriever = new NotebookRetriever('/mock/path');
+
+    const documents = [
+      {
+        date: '2026-03-20',
+        entries: [],
+        text: 'Resolved checkout outage and rollback after a production incident.',
+      },
+      {
+        date: '2026-03-19',
+        entries: [],
+        text: 'Planned team lunch and general admin tasks for next week.',
+      },
+    ];
+
+    const embedText = async (input: string): Promise<number[] | null> => {
+      const normalized = input.toLowerCase();
+      if (normalized.includes('outage') || normalized.includes('incident') || normalized.includes('rollback')) {
+        return [1, 0, 0];
+      }
+      return [0.6, 0.4, 0];
+    };
+
+    const chunks = await retriever.rankAndChunkHybrid('checkout outage', documents, 3, {
+      embedText,
+      minScore: 0.45,
+      requireKeywordMatch: true,
+    });
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]?.date).toBe('2026-03-20');
+  });
+
+  it('should exclude citation chunks below the configured min score', async () => {
+    const retriever = new NotebookRetriever('/mock/path');
+
+    const documents = [
+      {
+        date: '2026-03-20',
+        entries: [],
+        text: 'Checkout outage follow-up notes.',
+      },
+    ];
+
+    const chunks = await retriever.rankAndChunkHybrid('checkout outage', documents, 3, {
+      embedText: async () => [1, 0, 0],
+      semanticWeight: 0,
+      keywordWeight: 1,
+      minScore: 0.5,
+      requireKeywordMatch: true,
+    });
+
+    expect(chunks).toHaveLength(0);
+  });
+
+  it('should include citation chunks when score matches the configured min score', async () => {
+    const retriever = new NotebookRetriever('/mock/path');
+
+    const documents = [
+      {
+        date: '2026-03-20',
+        entries: [],
+        text: 'Checkout notes only.',
+      },
+    ];
+
+    const chunks = await retriever.rankAndChunkHybrid('checkout', documents, 3, {
+      embedText: async () => [1, 0, 0],
+      semanticWeight: 0,
+      keywordWeight: 1,
+      minScore: 0.25,
+      requireKeywordMatch: true,
+    });
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]?.date).toBe('2026-03-20');
+    expect(chunks[0]?.score).toBe(0.25);
+  });
 });
