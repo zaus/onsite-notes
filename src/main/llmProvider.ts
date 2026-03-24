@@ -77,6 +77,7 @@ export abstract class LLMProvider {
   /**
    * Generate an embedding vector for semantic retrieval.
    * @param input Text to embed
+   * @returns Embedding vector or null if embedding failed/not supported
    */
   abstract embed(
     input: string

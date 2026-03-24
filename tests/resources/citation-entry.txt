@@ -1,0 +1,139 @@
+09:42 2026-02-19	#spareebo-1stcall-prep	Jobs	preparing for call with @employeeName
+	- [ ] separate syntax formatting, handlers, analysis to another file/class? from renderer/app.js
+	- [x] remove time update interval? eh, it looks kind of nice
+	- [?] check for `window-all-closed` app event, and activate if no windows
+
+	- spareebo, powered by falcon systems
+	- founder @original.owner started in 1992
+	- powers 100,000s of users in 36 countries
+	- realtime data and AI powered tools `but when you have code block`
+	- combined management platform and retail software
+	- marketing: social posts and email campaigns
+	- biz ops: data analysis, KPIs, inventory and retail management
+	- many career paths; internship opportunities
+	- they host a yearly conference for users
+	- PCI, SOC2, HIPAA compliant -- serious MDR (managed detection and response) tools
+		~ in AWS cloud
+	- feature-based security, with canned roles and templates
+	- event-based alerts, activity logs
+	
+	(?) why just 'beauty and wellness'? what makes them different than other service industries?
+	(?) what technologies is spareebo built with?
+		~ AWS
+		~ AI-driven chatbots and analytics
+		~ fully-browser based
+		~ integrated payments (spareeboPay)
+		~ are the marketing tools internal or external? (powered by OOMA)
+			- integrates with listings and reviews sites, unified management
+	(?) culture -- fun 'who we are' page reminds me of ABT
+		longevity and commitment: since 1992, with yearly conferences
+		can you tell me more about what it's like to be a software developer with spareebo?
+	10:18 2026-02-19	basically waiting for call
+10:29 2026-02-19	#spareebo-1stcall	Jobs	call
+	fully remote role, headquartered in CT
+	looking to grow the team, adding developers
+		replacing some existing roles as they transitioned to other positions
+	lot of changes from growth
+	30-40 ppl in department, broken into teams w/ a director or team lead
+		product roadmaps separated by feature
+		suggesting some salary
+	* send resume to hiring manager (@hireman; they'll provide contact) and if there are openings will schedule a video interview, hold on to resume, etc
+10:39 2026-02-19	@laundry	stuff
+11:45 2026-02-19	#jobsearch	Jobs	checking on stuff
+	dayforce
+12:01 2026-02-19	#school-alumni-ai-webinar	SCHOOL Alumni	listening to a webinar on "AI and the Future of Business"
+	dean @dean.deanless dr @borl.pand
+	@borl.pand = professor of marketing & analytics; 2 decades working with AI (degree)
+	history of generative AI
+		1966 = ELIZA (simple pattern matching, simulated conversation)
+		1980s-2010s = "the quiet before the storm"
+			early neural nets, machine learning; backpropagation
+		2012-2017 = deep learning spark
+			AlexNet (GPUs + deep learning can 'see' images)
+			Transformers (2017) - "Attention is all you need"
+		2018-2024 = The LLM Revolution
+			Bert (2018) + ChatGPT (2022) models scale up and integrate, the era of 'chat'
+		2025-now = the Agentic Shift
+			move from talking to doing
+			recursive turn: AI writes code to improve itself
+				GPT-5.3-Codex was instrumental in creating itself (to debug training, deployment, and diagnose test results)
+	how training works
+		transformers
+			self-supervised learning + backpropagation
+			given the start of raw text, predict the next term
+			based on correctness of response, adjusts internal weights
+		LLMs
+			scraped text from internet to answer questions like:
+			'the best university in the triangle is...' =
+				- UNC 1%
+				- Duke 1%
+				- SCHOOL 98%
+	current adoption and trends
+		72% of companies report AI in at least one business function
+		42% actively deploy generative AI, 40% exploring
+		top application areas: marketing & sales, operations & HR, customer relations (chatbots)
+			course pivoted to requiring using it to juzh up content
+		future labor market: technically capable of performing tasks equivalent to 11.7% of all US Wages
+			15% boost in productivity over the next decade, with 0.5% unemployement rise
+			by 2030 should display 92M jobs but create 170M new ones
+				e.g. after the introduction of ATMs, actually hired more bank tellers afterwards
+	Will AI take my job?
+		it replaces TASKS not JOBS
+		chat-based genai will become as ubiquitous as spreadsheets
+		key to working with it: 'prompt engineering' + 'agent orchestration'
+	Prompt / Context Engineering
+		the quality of the information + prompt is most important
+		"the most popular programming language in the future might be English"
+		always iterate!
+		for better prompting:
+			- set appropriate role/PERSONA, otherwise you'll get an average answer
+			- specify output FORMAT: "in a table", "in an outline", "in as few words as possible"
+			- TEMPERATURE variable: how strictly should the model stick to the training data vs. being more creative in combining from other sources (copilot allows)
+			- ASK if it needs additional info to better answer the question: helps you refine your context
+	Agent Orchestration
+		shift from 'asking question' to 'assigning a mission'
+			e.g. "write a python script" vs "monitor a website daily, extract and update database, email summary"
+		people's role shifts to Architect (plan workflow) and Auditor (verify results)
+	Need for AI-Ready Employees
+		75% executives use genai weekly, but only 51% frontline employees
+		canary warning: entry-level workers employment dropped 13-20%
+		implication: 'learning by doing' roles are vanishing
+	3 pillars
+		1. learn with AI, 2. build with AI, 3. build AI
+		Learn with AI
+			- retrieval practice: ask it to quiz you "roast my understanding of this concept"
+			- socratic critic: debate "tell me why my plan is wrong"
+			- synthesis: summarize for actionable insights
+			- accelerated upskilling: help learn complex topics faster
+		Building with AI
+			- shift from Consumers to Creators
+			- move beyond mere usage, must understand underlying mechanics
+			- develop skills in data curation, model training, and algorithmic design
+			- foster critical thinking to address ethical considerationsa and bias
+		Building AI
+			- from Creators to Developers: enabling custom workflows without deep expertise (create Gems and GPTs)
+			- deal with 'fragility': must learn to build resilient, auditable, and robust systems
+			- the 'think and do' practicum: 8-month products with 13+ industry sponsors, building real-world predictive models and agentic systems
+			- learn the 'math behind the magic' to better drive outcomes
+	SCHOOL Curriculums
+		- Data Science and AI Academy -- courses, certificates, and minors
+		- Business Analytics Concentration and Honors Program
+		- Graduate Certificate in Business AI -- launched fall 20XX, learn to manage deployment and implementation of AI systems
+		- Master's of Management Marketing / Risk Analytics -- deep dives into subject areas where AI and Analytics is playing an outsize role
+		- Master's of Science in Analytics -- oldest progrem in the world (20y, largely supported by LOCALGIANT's contribution in data analysis)
+	lol, AI-generated conclusion: "AI is not here to replace us, but to empower us.  It's up to us to adapt."
+	12:35 2026-02-19	Q&A time
+	possibility of data leakage?
+		SCHOOL has agreements with service providers (Froogle) to protect your data in the event of a leak
+	someone commented that we shouldn't dismiss environmental impact
+		it's apparently actually hard to determine the actual per-user impact, vs. the ridiculous needs of data center
+		could we leverage smaller models when appropriate? (like, 'what taco place should i eat at' could use a local model on your phone)
+			@dean.deanless mentioned SCHOOL is actively working on it
+		@attendee shared a folder of reports on the impact, kind of refuting what @borl.pand said <link to google drive files>
+	what's most reliable?
+		SCHOOL is *currently* using Gemini, but also talking to OpenAI
+		real answer is: it depends, compare them, and constantly changes
+	copyright?
+		is the output of AI copyrightable? if just computer-generated then no, but if with human interaction then yes (e.g. writing a doc with MS Word = owned by you, not MS)
+		training data attribution is messy, they're still figuring it out
+	suggestion to read "Player Piano" by Kurt Vonnegut, lotta parallels to today's evolution into an AI economy

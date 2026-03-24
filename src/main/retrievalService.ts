@@ -7,6 +7,45 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import type { LogEntry } from './parser';
 
+/**
+ * Common English stop words to exclude from keyword matching.
+ * These carry no discriminative signal for personal work-note queries.
+ */
+const STOP_WORDS = new Set([
+  // Articles
+  'a', 'an', 'the',
+  // Coordinating & subordinating conjunctions
+  'and', 'or', 'but', 'nor', 'yet', 'so', 'if', 'as',
+  // Prepositions
+  'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'up', 'out',
+  'off', 'over', 'under', 'into', 'onto', 'upon', 'about', 'above', 'below',
+  'between', 'through', 'during', 'before', 'after', 'since', 'until',
+  'against', 'among', 'within', 'without',
+  // Personal pronouns
+  'i', 'me', 'my', 'myself',
+  'we', 'our', 'ours', 'ourselves',
+  'you', 'your', 'yours', 'yourself', 'yourselves',
+  'he', 'him', 'his', 'himself',
+  'she', 'her', 'hers', 'herself',
+  'it', 'its', 'itself',
+  'they', 'them', 'their', 'theirs', 'themselves',
+  // Demonstratives & interrogatives
+  'this', 'that', 'these', 'those',
+  'what', 'which', 'who', 'whom', 'whose',
+  'when', 'where', 'why', 'how',
+  // Auxiliary / modal verbs
+  'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+  'have', 'has', 'had', 'having',
+  'do', 'does', 'did', 'doing',
+  'will', 'would', 'could', 'should', 'shall', 'may', 'might', 'must', 'can',
+  'get', 'got', 'getting', 'gets',
+  // Common adverbs / misc high-frequency words
+  'not', 'no', 'than', 'then', 'too', 'very', 'just', 'also',
+  'here', 'there', 'once', 'again', 'still', 'now', 'only',
+  'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some',
+  'such', 'same', 'own',
+]);
+
 export interface RetrievalDocument {
   date: string;
   entries: LogEntry[]; // todo: use these or remove them?
@@ -26,6 +65,7 @@ export interface RetrievalResult {
 }
 
 export interface HybridRetrievalOptions {
+  /** Embedding delegate returning a vector representation for semantic search */
   embedText?: (input: string) => Promise<number[] | null>;
   semanticWeight?: number;
   keywordWeight?: number;
@@ -80,10 +120,7 @@ export class NotebookRetriever {
     topK: number = 5,
     options: Pick<HybridRetrievalOptions, 'minScore'> = {}
   ): RankedChunk[] {
-    const terms = query
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((t) => t.length > 2); // Ignore short terms
+    const terms = this.getQueryTerms(query);
 
     if (terms.length === 0) {
       return [];
@@ -95,12 +132,8 @@ export class NotebookRetriever {
     for (const doc of documents) {
       const textLower = doc.text.toLowerCase();
 
-      // Calculate term frequencies
-      let score = 0;
-      for (const term of terms) {
-        const matches = (textLower.match(new RegExp(term, 'g')) || []).length;
-        score += matches;
-      }
+      // Calculate term frequencies using shared scorer (word-boundary aware)
+      const score = this.computeKeywordScore(terms, doc.text);
 
       if (score > 0 && score >= minScore) {
         // Extract snippet around first match
@@ -219,18 +252,38 @@ export class NotebookRetriever {
       .join('\n');
   }
 
+  /**
+   * Extract meaningful search terms from a query.
+   * Preserves leading # and @ sigils so that tag/mention searches are exact.
+   * Strips other leading/trailing punctuation, short tokens,
+   * and common English stop words that carry no discriminative signal.
+   */
   private getQueryTerms(query: string): string[] {
     return query
       .toLowerCase()
       .split(/\s+/)
-      .filter((t) => t.length > 2);
+      .map((t) =>
+        t
+          .replace(/^[.,!?;:'"()\[\]{}]+/, '') // strip leading punctuation
+          .replace(/[.,!?;:'"()\[\]{}]+$/, '') // strip trailing punctuation
+      )
+      .filter((t) => t.length > 2 && !STOP_WORDS.has(t));
   }
 
+  /**
+   * Count how many times each term appears in text.
+   * Uses a single beginning-of-word rule `(?<!\w)` for all terms.
+   * This allows plain terms to match sigil-prefixed forms (e.g. "spareebo"
+   * matches "#spareebo"), while sigil terms remain exact because the sigil is
+   * part of the literal term.
+   */
   private computeKeywordScore(terms: string[], text: string): number {
     const textLower = text.toLowerCase();
     let score = 0;
     for (const term of terms) {
-      const matches = (textLower.match(new RegExp(term, 'g')) || []).length;
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(`(?<!\\w)${escaped}`, 'g');
+      const matches = (textLower.match(pattern) || []).length;
       score += matches;
     }
     return score;
