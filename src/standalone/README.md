@@ -44,10 +44,12 @@ Anything beyond that is optional until the basic flow is working.
 3. Ask a question and get an answer from retrieved chunks:
 
 	```powershell
-	.\query.ps1 -Question "What does the dataset say about X?" -IndexPath .\index.jsonl -EmbeddingEndpoint http://localhost:8080 -EmbeddingModel local-embedding-model -ChatEndpoint http://localhost:8080 -ChatModel local-chat-model
+	.\query.ps1 -Question "What does the dataset say about X?" -Start 8080 -EmbeddingModel local-embedding-model -ChatModel local-chat-model
 	```
 
-The default filenames are `chunks.jsonl` for chunk output and `index.jsonl` for the embedded search index.
+	Use `-Start <port>` to automatically check if llama-server is running and start it if needed. Starting the llama-server approach keeps the model loaded in memory, making queries much faster than command-line invocation.
+
+	The default filenames are `chunks.jsonl` for chunk output and `index.jsonl` for the embedded search index.
 
 ## Local LLM
 
@@ -96,8 +98,16 @@ cmake --build build --config Release -j
 
 If you don't have dedicated GPU you must select models that fit comfortably within your RAM while leaving a safety buffer for Windows 11.
 
-* **Primary LLM (The Thinker):** `Llama-3-8B-Instruct-GGUF` (specifically the `Q4_K_M` file variant). An 8B model quantized to 4-bits requires roughly 4.8 GB of RAM. It runs smoothly on Intel i7 processors and delivers highly accurate synthesis of your retrieved data chunks.
-* **Embedding Model (The Searcher):** `nomic-embed-text-v1.5.f16.gguf`. This lightweight model translates sentences into data coordinates for your vector search. It consumes less than 300 MB of RAM and supports a long 8,192-token context window, making it excellent for parsing deep into multi-thousand-line documents.
+* **Primary LLM (The Thinker):** [`Llama-3-8B-Instruct-GGUF`](https://huggingface.co/QuantFactory/Meta-Llama-3-8B-Instruct-GGUF/blob/main/Meta-Llama-3-8B-Instruct.Q4_K_M.gguf) (specifically the `Q4_K_M` file variant). An 8B model quantized to 4-bits requires roughly 4.8 GB of RAM. It runs smoothly on Intel i7 processors and delivers highly accurate synthesis of your retrieved data chunks.
+* **Embedding Model (The Searcher):** [`nomic-embed-text-v1.5.f16.gguf`](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF). This lightweight model translates sentences into data coordinates for your vector search. It consumes less than 300 MB of RAM and supports a long 8,192-token context window, making it excellent for parsing deep into multi-thousand-line documents.
+
+```bash
+# Download Llama-3-8B (4.8 GB)
+Invoke-WebRequest -Uri "https://huggingface.co" -OutFile "Meta-Llama-3-8B-Instruct.Q4_K_M.gguf"
+
+# Download Nomic Embed (275 MB)
+Invoke-WebRequest -Uri "https://huggingface.co" -OutFile "nomic-embed-text-v1.5.f16.gguf"
+```
 
 ### Step 1: Acquire the model file:
 * Download the file named `llama-bXXXX-bin-win-avx2-x64.zip` directly from the llama.cpp Releases Page.

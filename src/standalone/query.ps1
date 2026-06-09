@@ -8,10 +8,18 @@ param(
 	[string]$EmbeddingModel = 'local-embedding-model',
 	[string]$ChatEndpoint = 'http://localhost:8080',
 	[string]$ChatModel = 'local-chat-model',
-	[int]$TimeoutSec = 300
+	[int]$TimeoutSec = 300,
+	[int]$Start = 0
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
+
+if ($Start -gt 0) {
+	$serverResult = & (Join-Path $PSScriptRoot 'ensure-llama-server.ps1') -Port $Start -TimeoutSec 30
+	$EmbeddingEndpoint = $serverResult.endpoint
+	$ChatEndpoint = $serverResult.endpoint
+	Write-Host "Using llama-server at $($serverResult.endpoint)" -ForegroundColor DarkGreen
+}
 
 $index = @(Read-StandaloneJsonLines -Path $IndexPath)
 if ($index.Count -eq 0) {
