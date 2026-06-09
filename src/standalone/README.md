@@ -47,7 +47,15 @@ Anything beyond that is optional until the basic flow is working.
 	.\query.ps1 -Question "What does the dataset say about X?" -Start 8080 -EmbeddingModel local-embedding-model -ChatModel local-chat-model
 	```
 
-	Use `-Start <port>` to automatically check if llama-server is running and start it if needed. Starting the llama-server approach keeps the model loaded in memory, making queries much faster than command-line invocation.
+	Use `-Start <port>` to automatically check if llama-server is running and start it if needed. By default, startup omits explicit model selection so llama.cpp model routing can manage models.
+
+	Use `-StartModel` only when you want to force startup with a specific local GGUF path (`-m`) or HF reference (`-hf`):
+
+	```powershell
+	.\query.ps1 -Question "What does the dataset say about X?" -Start 8080 -StartModel ggml-org/gemma-3-1b-it-GGUF -EmbeddingModel local-embedding-model -ChatModel local-chat-model
+	```
+
+	Starting the llama-server approach keeps the model loaded in memory, making queries much faster than command-line invocation.
 
 	The default filenames are `chunks.jsonl` for chunk output and `index.jsonl` for the embedded search index.
 
@@ -108,6 +116,19 @@ Invoke-WebRequest -Uri "https://huggingface.co" -OutFile "Meta-Llama-3-8B-Instru
 # Download Nomic Embed (275 MB)
 Invoke-WebRequest -Uri "https://huggingface.co" -OutFile "nomic-embed-text-v1.5.f16.gguf"
 ```
+
+or use llama-cpp to directly download models to its cache folder `~/.cache/huggingface/hub` (each model saved to separate folder, with actual gguf in 'snapshots' subdirectory) and then exit from the cli.
+
+
+```bash
+# Download Llama-3-8B (4.8 GB)
+llama-cli -hf "QuantFactory/Meta-Llama-3-8B-Instruct-GGUF"
+
+# Download Nomic Embed (275 MB)
+llama-cli -hf "nomic-ai/nomic-embed-text-v1.5-GGUF"
+```
+
+Manage local models with `llama-cache ls` and `llama-cache rm <vendor>/<modelname>`.
 
 ### Step 1: Acquire the model file:
 * Download the file named `llama-bXXXX-bin-win-avx2-x64.zip` directly from the llama.cpp Releases Page.

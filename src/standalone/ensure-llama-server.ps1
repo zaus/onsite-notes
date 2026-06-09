@@ -40,21 +40,28 @@ try {
 		return @{ endpoint = $endpoint; started = $false }
 	}
 
-	if (-not $ModelPath) {
-		throw 'llama-server is not running and no model path was provided. Use -ModelPath to specify the GGUF file.'
+	$serverArgs = @(
+		'-c', '4096',
+		'-t', '6',
+		'--port', $Port
+	)
+
+	if (-not [string]::IsNullOrWhiteSpace($ModelPath)) {
+		if (Test-Path -LiteralPath $ModelPath) {
+			Write-Host "Starting llama-server on port $Port with local model path: $ModelPath"
+			$serverArgs = @('-m', $ModelPath) + $serverArgs
+		}
+		else {
+			# If the path does not exist locally, treat it as an HF reference, e.g. vendor/model-name.
+			Write-Host "Starting llama-server on port $Port with HF model reference: $ModelPath"
+			$serverArgs = @('-hf', $ModelPath) + $serverArgs
+		}
+	}
+	else {
+		Write-Host "Starting llama-server on port $Port without explicit model selection (router-managed)."
 	}
 
-	if (-not (Test-Path -LiteralPath $ModelPath)) {
-		throw "Model file not found: $ModelPath"
-	}
-
-	Write-Host "Starting llama-server on port $Port with model: $ModelPath"
-	$serverProcess = Start-Process -FilePath 'llama-server.exe' -ArgumentList @(
-		"-m", $ModelPath,
-		"-c", "4096",
-		"-t", "6",
-		"--port", $Port
-	) -PassThru -WindowStyle Minimized
+	$serverProcess = Start-Process -FilePath 'llama-server.exe' -ArgumentList $serverArgs -PassThru -WindowStyle Minimized
 
 	Write-Host "Waiting for llama-server to become ready (up to $TimeoutSec seconds)..."
 	if (Test-LlamaServerReady -Endpoint $endpoint -TimeoutSec $TimeoutSec) {
